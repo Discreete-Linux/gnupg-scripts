@@ -1,0 +1,17 @@
+#!/bin/bash -e
+#
+# postinst for GnuPG-Scripts
+#
+if [[ "$1" == "configure" ]]
+then
+    update-desktop-database
+    update-mime-database /usr/share/mime
+    egrep -q "gpg-decrypt.desktop" /etc/gnome/defaults.list || \
+    echo "application/pgp-encrypted=gpg-decrypt.desktop" >> \
+    /etc/gnome/defaults.list
+    # create python byte code files
+    PYVERSION=`python --version 2>&1 | sed 's/Python //' | cut -d. -f1,2`
+    pycompile -V $PYVERSION /usr/lib/python$PYVERSION/dist-packages
+fi
+
+exit 0

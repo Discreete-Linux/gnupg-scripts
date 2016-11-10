@@ -1,0 +1,310 @@
+gnupg-scripts (0.11) jessie; urgency=low
+
+  * Ported to GNOME 3
+
+ -- Discreete Linux Team <info@discreete-linux.org>  Wed, 03 Aug 2016 14:00:35 +0200
+ 
+gnupg-scripts (0.10-8) precise; urgency=low
+
+  * More fixes for Unicode strings
+
+ -- UPR Team <info@privacy-cd.org>  Wed, 23 Sep 2015 14:30:09 +0200
+
+gnupg-scripts (0.10-7) precise; urgency=low
+
+  * Added gpg-janitor
+
+ -- UPR Team <info@privacy-cd.org>  Mon, 16 Mar 2015 13:41:23 +0100
+
+gnupg-scripts (0.10-5) precise; urgency=low
+
+ * Fixed missing notification for for unencrypted files in gpg-properties
+   (Closes: #49)
+
+ -- UPR Team <info@privacy-cd.org>  Sun, 04 May 2014 18:02:31 +0200
+
+gnupg-scripts (0.10-4) precise; urgency=low
+
+ * Fixed encoding of filenames in ZIP archives (Closes: #48)
+
+ * Fixed missing notification for bad signatures (Closes: #47)
+
+ -- UPR Team <info@privacy-cd.org>  Thu, 19 Sep 2013 21:23:48 +0200
+
+gnupg-scripts (0.10-3) precise; urgency=low
+
+ * Fixed a crash due to an encoding problem (Closes: #46)
+
+ * Added handling for signatures with expired keys (Closes: #45)
+
+ -- UPR Team <info@privacy-cd.org>  Sun, 28 Jul 2013 20:52:21 +0200
+
+gnupg-scripts (0.10-2) precise; urgency=low
+
+ * Further adaptation to Ubuntu 12.04 LTS (precise)
+
+ -- UPR Team <info@privacy-cd.org>  Tue, 23 Jul 2013 14:15:12 +0200
+
+gnupg-scripts (0.10-1) precise; urgency=low
+
+ * Fixed failing encryption if no valid default key has been configured
+   (Closes: #44)
+
+ * Fixed repeated notification messages on decryption if the signing key
+   is expired (Closes: #43)
+
+ * Adapted to Ubuntu 12.04 LTS (precise)
+
+ -- UPR Team <info@privacy-cd.org>  Sun, 28 Jul 2013 17:37:52 +0200
+
+gnupg-scripts (0.9-16) stable; urgency=low
+
+ * Called with a directory gpg-properties no longer displays information
+   on every single file but only reports unencrypted files (Closes: #42)
+
+ -- UPR Team <info@privacy-cd.org>  Wed, 26 Dec 2012 11:34:36 +0100
+
+gnupg-scripts (0.9-15) stable; urgency=low
+
+ * Fixed failing decryption in gpg-properties (Closes: #41)
+
+ * Called with several files or a directory gpg-properties no longer offers
+   a decryption option (Closes: #40)
+
+ * Now gpg-properties no longer stops if an unencrypted file is encountered
+   (Closes: #39)
+
+ -- UPR Team <info@privacy-cd.org>  Sat, 19 May 2012 16:44:19 +0200
+
+gnupg-scripts (0.9-14) stable; urgency=low
+
+ * The man page has been updated (Closes: #38)
+
+ * The missing display of the icon in some message windows has been fixed
+   (Closes: #37)
+
+ * The bug has been fixed that files in subdirectories weren't found
+   if gpg-properties is applied to a directory (Closes: #36)
+
+ * The key view in encryption no longer changes when the signing key is
+   changed (Closes: #35)
+
+ * Signature only keys are no longer presented for selection in encryption
+   and in key groups (Closes: #34)
+
+ * Invalid keys are removed from key groups in gpg-config,
+   moreover unsigned keys are also removed if the option to use them
+   isn't set (Closes: #33)
+
+ -- UPR Team <info@privacy-cd.org>  Wed, 11. Apr 2012 09:09:03 +0200
+
+gnupg-scripts (0.9-13) stable; urgency=low
+
+ * Encrypt-to-self now always encrypts to the default key, 
+   instead of the currently selected signing key.
+
+ -- UPR Team <info@privacy-cd.org>  Tue, 06. Dec 2011 10:48:01 +0200
+
+gnupg-scripts (0.9-12) stable; urgency=low
+
+ * Fixed a bug where groups would not be written
+
+ -- UPR Team <info@privacy-cd.org>  Thu, 06. Oct 2011 15:13:01 +0200
+
+gnupg-scripts (0.9-11) stable; urgency=low
+
+ * Added ASCII armor option
+
+ -- UPR Team <info@privacy-cd.org>  Wed, 01. Jun 2011 15:13:01 +0200
+
+gnupg-scripts (0.9-10) stable; urgency=low
+
+ * Bugfixes
+
+ -- UPR Team <info@privacy-cd.org>  Wed, 25. May 2011 10:11:01 +0200
+
+gnupg-scripts (0.9-9) stable; urgency=low
+
+ * Code refactoring
+
+ -- UPR Team <info@privacy-cd.org>  Mon, 02. May 2011 11:20:01 +0200
+
+gnupg-scripts (0.9-8) stable; urgency=low
+
+ * Bugs and translations fixed
+
+ -- UPR Team <info@privacy-cd.org>  Thu, 21. Apr 2011 11:20:01 +0200
+
+gnupg-scripts (0.9-7) stable; urgency=low
+
+ * Added throw-keyid option
+
+ -- UPR Team <info@privacy-cd.org>  Tue, 12. Apr 2011 14:35:01 +0200
+
+gnupg-scripts (0.9-6) stable; urgency=low
+
+ * Code refactoring and bugfixes
+
+ -- UPR Team <info@privacy-cd.org>  Tue, 12. Apr 2011 09:14:01 +0200
+
+gnupg-scripts (0.9-5) stable; urgency=low
+
+ * GUI rewritten/rebuilt with Glade & GtkBuilder
+
+ -- UPR Team <info@privacy-cd.org>  
+
+gnupg-scripts (0.9-4) stable; urgency=low
+
+ * Use pythons new-style classes
+
+ -- UPR Team <info@privacy-cd.org>
+
+gnupg-scripts (0.9-3) stable; urgency=low
+
+ * Syntax error fix in gpg-decrypt
+
+ * Cleanup the code for renaming decrypted files, fixes several glitches
+
+ -- UPR Team <info@privacy-cd.org>
+
+gnupg-scripts (0.9-2) stable; urgency=low
+
+ * Fixes disruptive jumping into the selected keys view on key selection
+
+ * Fixes removal of archives if the the question for unpacking has been negated
+
+ * Fixes sorting of key groups
+
+ -- UPR Team <info@privacy-cd.org>
+
+gnupg-scripts (0.9-1) stable; urgency=low
+
+ * Show indirectly selected keys (by encrypt to self and/or by key groups)
+   in view of selected keys
+
+ * Added a new button "Copy" for copying groups in group editor
+
+ * Renames embedded filename from "name.ending" to "name-2.ending"
+   if it shall be used and a file with this name already exists
+
+ * Handles .tar.gz and .tar.bz2 in addition to .zip archives
+
+ * Encrypts complete folders, gpg-decrypt and gpg-properties may also be
+   applied to folders and than handle all files therein
+
+ * Added option to automatically remove originals after encryption
+
+ * Added localization of tooltip
+
+ * Improved error handling for files with no valid OpenPGP data
+
+ * Added rudimentary source documentation
+
+ -- UPR Team <info@privacy-cd.org>
+
+gnupg-scripts (0.8-5) stable; urgency=low
+
+ * Fix restoring original filenames
+
+ -- UPR Team <info@privacy-cd.org>
+
+gnupg-scripts (0.8-4) stable; urgency=low
+
+ * Fixes to keyboard navigation in dialogs
+
+ * Fixes to screen layout
+
+ * Fixes german umlaut handling in key lists
+
+ -- UPR Team <info@privacy-cd.org>
+
+gnupg-scripts (0.8-3) stable; urgency=low
+
+ * Fixes to keyboard navigation in dialogs
+
+ -- UPR Team <info@privacy-cd.org>
+
+gnupg-scripts (0.8-2) stable; urgency=low
+
+ * Fixes desktop integration for gpg-properties
+
+ -- UPR Team <info@privacy-cd.org>
+
+gnupg-scripts (0.8-1) stable; urgency=low
+
+ * Added a "gpg-properties" command to display what recipients
+   a file is encrypted for
+
+ * Minor bugfixes
+
+ -- UPR Team <info@privacy-cd.org>
+
+gnupg-scripts (0.7-6) stable; urgency=low
+
+ * Made the search filter case-insensitive,
+   as this is what most people would expect
+
+ -- UPR Team <info@privacy-cd.org>
+
+gnupg-scripts (0.7-5) stable; urgency=low
+
+ * Fixes dialog layout for small screens
+
+ * Removed static icon paths, allowing for themed icons
+
+ * Added script snippet for mass-signing the entire keyring
+
+ -- UPR Team <info@privacy-cd.org>
+
+gnupg-scripts (0.7-4) stable; urgency=low
+
+ * Added option to use unsigned keys and made it the default
+
+ -- UPR Team <info@privacy-cd.org>
+
+gnupg-scripts (0.7-3) stable; urgency=low
+
+ * Uses gnupg's --status-fd for more reliable output parsing
+
+ * Removed absolute paths
+
+ -- UPR Team <info@privacy-cd.org>
+
+gnupg-scripts (0.7-2) stable; urgency=low
+
+ * Corrects a translation which must be the same as that of gpg
+
+ * Removes a print statement
+
+ * Installs the script for creating python byte codes
+
+ -- UPR Team <info@privacy-cd.org>
+
+gnupg-scripts (0.7-1) stable; urgency=low
+
+ * Use python-magic to determine wether a file is a ZIP archive
+
+ * Added more keyboard short cuts
+
+ -- UPR Team <info@privacy-cd.org>
+
+gnupg-scripts (0.6-1) stable; urgency=low
+
+ * Added a search filter for public keys to gpg-encrypt and gpg-group-edit
+
+ -- UPR Team <info@privacy-cd.org>
+
+gnupg-scripts (0.5-2) stable; urgency=low
+
+ * Fixes a bug triggered by keys which never expire
+
+ -- UPR Team <info@privacy-cd.org>
+
+gnupg-scripts (0.5-1) stable; urgency=low
+
+ * First released version of gnupg-scripts
+
+ * Fixes the bug that shell script with zenity was way too slow
+
+ -- UPR Team <info@privacy-cd.org>
+

@@ -1,0 +1,16 @@
+#!/bin/bash -e
+#
+# postrm for GnuPG-Scripts
+#
+if [[ "$1" == "upgrade" || "$1" == "remove" || "$1" == "purge" ]]
+then
+    update-desktop-database
+    update-mime-database /usr/share/mime
+    gconftool-2 --direct \
+    --config-source xml:readwrite:/etc/gconf/gconf.xml.system \
+    --recursive-unset \
+    /apps/nautilus-actions/configurations/gnupg-scripts-encrypt
+    gconftool-2 --direct \
+    --config-source xml:readwrite:/etc/gconf/gconf.xml.system \
+    --recursive-unset /apps/nautilus-actions/configurations/gnupg-scripts-sign
+fi

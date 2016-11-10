@@ -1,0 +1,278 @@
+.TH GnuPG-Scripts 1 "Jul 2016"
+.SH NAME
+GnuPG-Scripts - python scripts that invoke gpg for encryption and
+decryption, signatures and verification from within nautilus/nemo
+
+.SH SYNOPSIS
+.HP
+.B gpg-config
+[--default | --signing-page | --packing-page]
+.HP
+.B gpg-group-edit
+.HP
+.B gpg-encrypt
+<files>
+.HP
+.B gpg-decrypt
+<files>
+.HP
+.B gpg-sign
+<files>
+.HP
+.B gpg-verify
+<files>
+.HP
+.B gpg-properties
+<files>
+.HP
+.B gpg-mass-sign
+
+.SH DESCRIPTION
+.B GnuPG-Scripts
+provides python scripts that invoke gpg for encryption and decryption,
+signatures and verification from within nautilus; moreover, an editor for
+key groups and a script for configuration of the default key and other
+options of gnupg and gnupg-scripts is provided.
+
+.B gpg-config
+presents a user interface which lets the user configure all configuration
+variables of
+.B GnuPG-Scripts
+(see the CONFIGURATION section below). Moreover, the configuration variables
+.I default-key
+and
+.I use-embedded-filename
+of
+.B gpg
+in the configuration file
+.I $HOME/.gnupg/gpg.conf
+can be configured with this script as well.
+
+.B gpg-group-edit
+presents a user interface with which key groups may be configured. They are
+written to the
+.B gpg
+configuration file
+.I $HOME/.gnupg/gpg.conf.
+
+.B gpg-encrypt
+encrypts the files given as arguments. A user interface is presented for
+selecting the recipients. Depending on the
+.B GnuPG-Scripts
+configuration and the settings given in the user interface serveral files
+are optionally packed together in .zip, .tar.gz or .tar.bz2 format
+before encryption.
+
+.B gpg-decrypt
+decrypts the files given as arguments. Depending on the
+.B GnuPG-Scripts
+configuration and the settings given in the user interface encrypted
+archives are optionally unzipped after decryption.
+
+.B gpg-sign
+creates detached signatures of the files given as arguments. A user interface
+allows the user to select the signing key with the
+.I default-key
+being preselected.
+
+.B gpg-verify
+verifies detached the signatures given as arguments. If the filename of the
+signed file can't be deduced from the filename of a signature a user interface
+to select this file is presented. The user is informed about the validity of
+each signature with a separate message box.
+
+.B gpg-properties
+checks wether the files given as arguments are encrypted and displays for
+each file the recipients it is encrypted for.
+
+.B gpg-mass-sign
+signs all public keys in the keyring at once.
+
+.SH OPTIONS
+Only
+.B gpg-config
+permits options. There are three of them:
+.TP 15
+--default
+Write a default configuration to $HOME/.gnupg/gnupg-scripts.conf and exit.
+.TP 15
+--signing-page
+Start the configuration window with the signing page
+instead of encryption page.
+.TP 15
+--packing-page
+Start the configuration window with the (un)packing page
+instead of encryption page.
+.PP
+If no option is given the configuration window is started
+with the encryption page.
+
+.SH CONFIGURATION
+.B GnuPG-Scripts
+have an own configuration file $HOME/.gnupg/gnupg-scripts.conf.
+All configuration variables can be set by the script
+.I gpg-config.
+This script also lets you configure your default key and set or unset
+the gnupg configuration variable
+.I use-embedded-filename
+which says that the original file name embedded into the encryption shall
+be used for the encrypted file again.
+.br
+Known configuration variables in this file are
+.TP
+GNUPG_SCRIPTS_ENCRYPT_TO_SELF = [yes|no]
+If 'yes', always add the own default key to the list of recipients
+to encrypt for.
+.TP
+GNUPG_SCRIPTS_PACK = [yes|no|ask]
+If 'yes', always pack several files to be encrypted at once into a ZIP archive
+which then is encrypted. If this value is set to 'ask' the user will be asked
+whether to pack the files or to encrypt them separately.
+.TP
+GNUPG_SCRIPTS_UNPACK = [yes|no|ask]
+If 'yes', always unpack encrypted ZIP archives after decryption into the
+working directory. If this value is set to 'ask' the user will be asked
+whether to unpack the ZIP archive or to leave it as is.
+.TP
+GNUPG_SCRIPTS_ARCHIVE_FORMAT = [.zip|.tar.gz|.tar.bz2]
+This variable is the archive format and file name extension generated when
+several files are packed together in encryption.
+.TP
+GNUPG_SCRIPTS_ARCHIVE_NAME_FORMAT = <any text>
+This variable determines the names of archive files created for encryption.
+If the value of GNUPG_SCRIPTS_PACK is 'ask' the user has the chance to
+change the names individually. In order to determine where the ZIP archive
+shall be created an absolute path may be chosen for this variable or the
+individually altered name.
+.TP
+GNUPG_SCRIPTS_REMOVE_PACKED_FILE = [yes|no]
+If 'yes', ZIP files created for encryption will be removed after the encryption.
+If the value of GNUPG_SCRIPTS_PACK is 'ask' the user has the chance to change
+this behaviour individually.
+.TP
+GNUPG_SCRIPTS_REMOVE_UNPACKED_FILE = [yes|no]
+If 'yes', decrypted ZIP files will be removed after they have been unpacked.
+.TP
+GNUPG_SCRIPTS_REMOVE_ORIGINALS = [yes|no]
+If 'yes', encrypted files will be removed after they have been encrypted.
+.TP
+GNUPG_SCRIPTS_USE_UNSIGNED_KEYS = [yes|no]
+If 'yes', unsigned keys will be presented for selection on encryption and
+in the editor for key groups. Otherwise only signed keys are usable in that
+context.
+.br
+The name of the ZIP file will be a translation of this text followed by a
+hyphen and a number (which makes the filename unique) and finally the '.zip'
+suffix. A '%' token followed by a letter is translated as follows:
+.TP 5
+%a
+abbreviated weekday name
+.TP
+%A
+full weekday name
+.TP
+%b 
+abbreviated month name
+.TP
+%b 
+full month name
+.TP
+%c 
+complete date and time
+.TP
+%d 
+day of month (1 ... 31)
+.TP
+%H 
+hour (0 ... 23)
+.TP
+%I 
+hour (1 ... 12)
+.TP
+%m 
+month number (1 ... 12)
+.TP
+%M 
+Minute (0 ... 59)
+.TP
+%P
+A.M or P.M
+.TP
+%S 
+Second (0 ... 59)
+.TP
+%U 
+week number (0 ... 53)
+.TP
+%x 
+complete date
+.TP
+%X 
+complete time
+.TP
+%y 
+year within century (0 ... 99)
+.TP
+%Y 
+year (1970 ... 2038)
+.TP
+%Z
+name of time zone
+.TP
+%%
+literal % character
+
+.SH FILES
+.HP
+/usr/share/mime/packages/gnupg-scripts.xml
+.br
+Mime type for detached signature files.
+.HP
+/usr/share/locale-langpack/de/LC_MESSAGES/gnupg-scripts.mo
+.br
+German language file.
+.HP
+/usr/share/icons/gnome/24x24/actions/gnupg-scripts-*.png
+.br
+Icons to be displayed by the scripts.
+.HP
+/usr/lib/gnupg-scripts/*.ui
+.br
+User interface description files for
+.B GnuPG-Scripts.
+.HP
+/usr/share/applications/gnupg-scripts-config.desktop
+.br
+Desktop entry file for gpg-config.
+.HP
+/usr/share/applications/gnupg-scripts-group-edit.desktop
+.br
+Desktop entry file for gpg-group-edit.
+.HP
+/usr/share/applications/gpg-decrypt.desktop
+.br
+Desktop entry file for gpg-decrypt.
+.HP
+/usr/share/applications/gpg-verify.desktop
+.br
+Desktop entry file for gpg-verify.
+.HP
+/usr/share/applications/gpg-properties.desktop
+.br
+Desktop entry file for gpg-properties.
+.HP
+/usr/lib/nautilus/extensions-2.0/python/gnupg-extension.py
+.br
+Nautilus extension script for invoking
+.B GnuPG-Scripts
+from within nautilus/nemo.
+.HP
+$HOME/.gnupg/gnupg-scripts.conf
+.br
+The configuration file of
+.B GnuPG-Scripts
+for the current user.
+
+.SH AUTHOR
+.B GnuPG-Scripts
+was developed by the Discreete Linux Team <info@discreete-linux.org>.

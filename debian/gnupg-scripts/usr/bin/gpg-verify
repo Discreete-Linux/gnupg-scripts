@@ -1,0 +1,98 @@
+#!/usr/bin/python
+#
+#  GnuPG-Scripts
+#
+#  Copyright (C) 2016 Discreete Linux Team <info@discreete-linux.org>
+#
+import os
+import sys
+from gi.repository import Gtk
+import gettext
+import gpgmessages
+import gpgprocess
+import gpgplatform
+
+# Init translations
+os.environ.setdefault("LANG", "en")
+gettext.install("gnupg-scripts", unicode=1)
+# Init icons
+icon_theme = Gtk.IconTheme.get_default()
+try:
+    icon = icon_theme.load_icon("gnupg-scripts-sign", 24, 0)
+except:
+    icon = None
+    pass
+title = _("Signature Verification")
+# Get arguments
+files = []
+for line in sys.argv[1:]:
+    files.append(line.decode('utf-8', 'replace'))
+workdir = os.getcwd().decode('utf-8', 'replace')
+
+def verifySignature(sig):
+    """ Verify a detached signature """
+    global title, icon
+    ret = True
+    if sig.endswith(".sig"):
+        sigdata = sig[0:len(sig) - 4]
+        if not os.path.isfile(sigdata):
+            sigdata = ""
+    else:
+        sigdata = ""
+    if not sigdata:
+        dlg = Gtk.FileChooserDialog(_("Signed Data Selection"), None,
+                                    Gtk.FileChooserAction.OPEN,
+                                    (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                                     Gtk.STOCK_OK, Gtk.ResponseType.OK))
+        dlg.set_default_response(Gtk.ResponseType.OK)
+        if dlg.run() == Gtk.ResponseType.OK:
+            sigdata = dlg.get_filename()
+            dlg.destroy()
+        else:
+            dlg.destroy()
+            return False
+    args = [ "--status-fd", "2", "--verify", sig, sigdata ]
+    try:
+        ret = gpgprocess.gpg(args)
+    except IOError:
+        gpgmessages.startFailed(None, icon, title)
+        return False
+    gpgmsg = gpgmessages.GpgMessages(icon, title, "verify")
+    for line in ret["stderr"]:
+        if not gpgmsg.parse(sig, line):
+            return False
+    if gpgmsg.signed and (gpgmsg.sigstate == "valid"):
+        msg = (sigdata + ":\n" + gpgmsg.goodsig_msg +
+               gpgmsg.signer + "\n" + gpgmsg.create_msg +
+               str(gpgmsg.date))
+        gpgmessages.displayMessage(msg, title, Gtk.MessageType.INFO, icon)
+    elif gpgmsg.signed and (gpgmsg.sigstate == "bad"):
+        msg = sigdata + ":\n" + gpgmsg.badsig_msg + "\n" + gpgmsg.signer
+        gpgmessages.displayMessage(msg, title, Gtk.MessageType.ERROR, icon)
+    elif (gpgmsg.sigstate == "expired"):
+        msg = (sigdata + ":\n" + gpgmsg.goodsig_msg + "\n" +
+               gpgmsg.signer + "\n" + gpgmsg.create_msg +
+               str(gpgmsg.date) + ".\n" +
+               gpgmsg.expired_msg % str(gpgmsg.expire))
+        gpgmessages.displayMessage(msg, title, Gtk.MessageType.ERROR, icon)
+    return True
+
+if __name__ == "__main__":
+    for curfile in files:
+        if os.path.isfile(curfile):
+            sig = os.path.basename(curfile)
+            curdir = os.path.dirname(curfile)
+            if curdir:
+                try:
+                    os.chdir(curdir)
+                except OSError:
+                    continue
+            verifySignature(sig)
+            try:
+                os.chdir(workdir)
+            except OSError:
+                break
+
+    if not files:
+        msg = _("Missing at least one file argument to verify!")
+        gpgmessages.displayMessage(msg, title, icon=icon)

@@ -1,0 +1,15 @@
+#
+#  GnuPG-Scripts
+#
+#  Copyright (C) 2016 Discreete Linux Team <info@discreete-linux.org>
+#
+
+[Desktop Entry]
+Exec=/usr/bin/gpg-group-edit
+Icon=gnupg-scripts-groups
+Name=GnuPG Group Editor
+Terminal=false
+Type=Application
+Version=1.0
+Categories=Application;Security;
+X-Ubuntu-Gettext-Domain=gnupg-scripts

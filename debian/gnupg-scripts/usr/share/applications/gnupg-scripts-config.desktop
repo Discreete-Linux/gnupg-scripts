@@ -1,0 +1,15 @@
+#
+#  GnuPG-Scripts
+#
+#  Copyright (C) 2016 Discreete Linux Team <info@discreete-linux.org>
+#
+
+[Desktop Entry]
+Exec=/usr/bin/gpg-config
+Icon=gnupg-scripts-config
+Name=GnuPG Configuration
+Terminal=false
+Type=Application
+Version=1.0
+Categories=Application;Security;
+X-Ubuntu-Gettext-Domain=gnupg-scripts

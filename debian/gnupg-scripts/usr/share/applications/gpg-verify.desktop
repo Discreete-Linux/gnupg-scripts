@@ -1,0 +1,15 @@
+#
+#  GnuPG-Scripts
+#
+#  Copyright (C) 2016 Discreete Linux Team <info@discreete-linux.org>
+#
+
+[Desktop Entry]
+Name=Verify
+Encoding=UTF-8
+MimeType=application/pgp-signature;
+Exec=/usr/bin/gpg-verify
+Type=Application
+Terminal=false
+NoDisplay=true
+X-Ubuntu-Gettext-Domain=gnupg-scripts

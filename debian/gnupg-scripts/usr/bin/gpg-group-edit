@@ -1,0 +1,403 @@
+#!/usr/bin/python
+#
+#  GnuPG-Scripts
+#
+#  Copyright (C) 2016 Discreete Linux Team <info@discreete-linux.org>
+#
+import os
+from gi.repository import Gtk, Gdk
+import gettext
+from gi.repository import GObject
+import gpgconf
+import gpgkeys
+import gpgmessages
+import gpgplatform
+
+# Init translations
+os.environ.setdefault("LANG", "en")
+gettext.install("gnupg-scripts", unicode=1)
+
+class GroupApp(Gtk.Window):
+    """ Create and edit key groups """
+    def __init__(self):
+        """ Init and display group editor window"""
+        super(GroupApp, self).__init__()
+        self.builder = Gtk.Builder()
+        self.builder.add_from_file(os.path.join(gpgplatform.uidir(),
+                                   "gpg-group-edit.ui"))
+        for i in self.builder.get_objects():
+            if "GtkBuildable" in str(GObject.type_interfaces(i)):
+                id = Gtk.Buildable.get_name(i)
+                vars(self)[id] = self.builder.get_object(id)
+        self.fmodel = self.builder.get_object("fmodel")
+        self.rendg0 = self.builder.get_object("rendg0")
+        self.rendk0 = self.builder.get_object("rendk0")
+        icon_name = self.window1.get_icon_name()
+        icon_theme = Gtk.IconTheme.get_default()
+        try:
+            self.icon = icon_theme.load_icon(icon_name, 24, 0)
+        except:
+            self.icon = None
+        w = (Gdk.Screen.width() - 200)
+        w1 = w//5
+        w2 = 4*w1
+        if w1 > 250:
+            w1 = 250
+        if w2 > 800:
+            w2 = 800
+        w = w1 + w2
+        h = Gdk.Screen.height() - 320
+        if h > 600:
+            h = 600
+        self.keygroup = ""
+        self.filterstr = ""
+        self.gpgconf = gpgconf.GpgConf(self)
+        self.pubkeys = gpgkeys.PubKeys(self)
+        self.scroll1.set_size_request(w1, h)
+        self.select = self.view1.get_selection()
+        self.select.set_mode(Gtk.SelectionMode.SINGLE)
+        for grp in self.gpgconf.groups:
+            self.store1.append([ grp[0], len(grp[1]) ])
+        self.scroll2.set_size_request(w2, h)
+        self.store2.set_sort_column_id(4,Gtk.SortType.ASCENDING)
+        for key in self.pubkeys.keylist:
+            self.store2.append([ False,
+                                 key[0],
+                                 gpgkeys.strDate(key[1]),
+                                 gpgkeys.strDate(key[2]),
+                                 key[3] ])
+        self.fmodel.set_visible_func(self.isVisible)
+        self.select.connect("changed", self.onSelect)
+        self.rendk0.connect("toggled", self.onToggled, self.fmodel)
+        self.view2.connect("row-activated", self.onActivated, self.fmodel)
+        self.builder.connect_signals(self)
+        self.window1.show_all()
+
+    def gtk_main_quit(self, widget):
+        Gtk.main_quit()
+
+    def onKeyPressed(self, widget, event):
+        """ Handles certain special key events """
+        keyname = Gdk.keyval_name(event.keyval)
+        # Make "Enter" or "Return" act like "OK"
+        if (keyname == "KP_Enter") or (keyname == "Return"):
+            if self.ok.get_sensitive():
+                self.onOk(self)
+            return True
+        # Make "Escape" act like "Cancel"
+        elif keyname == "Escape":
+            self.window1.destroy()
+            return True
+        return False
+
+    def onActivated(self, treeview, path, column, model):
+        """ Handle activation of key items, i.e. toggle it """
+        self.onToggled(None, path, model)
+
+    def isVisible(self, model, itr, data=None):
+        """ Return whether a certain key item should be visible """
+        if self.results.get_active() and self.filterstr:
+            namelist = model.get_value(itr, 4).split("\n")
+            for name in namelist:
+                if self.filterstr.lower() in name.lower():
+                    return True
+            else:
+                return False
+        elif self.selkeys.get_active():
+            return model.get_value(itr, 0)
+        else:
+            return True
+
+    def onSelect(self, widget):
+        """ Handle selection of a key group """
+        item, itr = self.select.get_selected()
+        if itr:
+            self.keygroup = item.get_value(itr, 0)
+            self.copy.set_sensitive(True)
+            self.rename.set_sensitive(True)
+            self.delete.set_sensitive(True)
+            self.update.set_sensitive(True)
+            for grp in self.gpgconf.groups:
+                if grp[0] == self.keygroup:
+                    for n in range(0, len(self.store2)):
+                        for keyid in grp[1]:
+                            if keyid == self.store2[n][1]:
+                                self.store2[n][0] = True
+                                break
+                        else:
+                            self.store2[n][0] = False
+                    break
+        else:
+            self.keygroup = ""
+            self.copy.set_sensitive(False)
+            self.rename.set_sensitive(False)
+            self.delete.set_sensitive(False)
+            self.update.set_sensitive(False)
+        self.save.set_sensitive(False)
+        self.selkeys.set_active(True)
+
+    def onUpdate(self, widget):
+        """ Handle update of a key group """
+        item, itr = self.select.get_selected()
+        if itr:
+            rev = { "msgp" : _("%d revoked keys have been removed:\n"),
+                    "msgs" : _("1 revoked key has been removed:\n"),
+                    "keys" : [] }
+            exp = { "msgp" : _("%d expired keys have been removed:\n"),
+                    "msgs" : _("1 expired key has been removed:\n"),
+                    "keys" : [] }
+            dis = { "msgp" : _("%d disabled keys have been removed:\n"),
+                    "msgs" : _("1 disabled key has been removed:\n"),
+                    "keys" : [] }
+            utr = { "msgp" : _("%d untrustworthy keys have been removed:\n"),
+                    "msgs" : _("1 untrustworthy key has been removed:\n"),
+                    "keys" : [] }
+            sig = { "msgp" : _("%d signature-only keys have been removed:\n"),
+                    "msgs" : _("1 signature-only key has been removed:\n"),
+                    "keys" : [] }
+            unk = { "msgp" : _("%d unknown keys have been removed:\n"),
+                    "msgs" : _("1 unknown key has been removed:\n"),
+                    "keys" : [] }
+            updated = False
+            glen = 0
+            for grp in self.gpgconf.groups:
+                if grp[0] == self.keygroup:
+                    n = 0
+                    while n < len(grp[1]):
+                        keyid = grp[1][n]
+                        for m in range(0, len(self.store2)):
+                            if keyid == self.store2[m][1]:
+                                n += 1
+                                break
+                        else:
+                            key = self.pubkeys.check_key(keyid)
+                            if key[0] == "r":
+                                rev["keys"].append(key[1])
+                                grp[1].pop(n)
+                            elif key[0] == "e":
+                                exp["keys"].append(key[1])
+                                grp[1].pop(n)
+                            elif key[0] == "d":
+                                dis["keys"].append(key[1])
+                                grp[1].pop(n)
+                            elif key[0] == "n":
+                                utr["keys"].append(key[1])
+                                grp[1].pop(n)
+                            elif key[0] == "s":
+                                sig["keys"].append(key[1])
+                                grp[1].pop(n)
+                            elif key[0] == "v":
+                                # Should not happen!
+                                n += 1
+                                break
+                            else:
+                                unk["keys"].append(keyid)
+                                grp[1].pop(n)
+                    glen = len(grp[1])
+                    break
+            if not (rev or exp or dis or utr or sig or unk):
+                msg = _("The group is up to date.")
+            else:
+                msg = _("The group has been updated.\n")
+                for rmg in [ rev, exp, dis, utr, sig, unk ]:
+                    if len(rmg["keys"]) > 1:
+                        msg +=  rmg["msgp"] % len(rmg["keys"])
+                    elif rmg["keys"]:
+                        msg +=  rmg["msgs"]
+                    for key in rmg["keys"]:
+                        msg += "\t" + key + "\n"
+                updated = True
+            gpgmessages.displayMessage(msg, _("Group Update"), Gtk.MessageType.INFO,
+                                       self.icon)
+            if updated:
+                item.set_value(itr, 1, glen)
+                self.ok.set_sensitive(True)
+
+    def onRename(self, widget):
+        """ Handle renaming of a key group """
+        msg = _("Please enter the new group name:")
+        old_name = self.keygroup
+        item, glst = self.select.get_selected_rows()
+        for n in glst:
+            for grp in self.gpgconf.groups:
+                if grp[0] == self.keygroup:
+                    grp[0] = ""
+                    new_name = self.getGroupName(msg)
+                    if new_name:
+                        grp[0] = new_name
+                        item[n][0] = new_name
+                        self.keygroup = new_name
+                        self.ok.set_sensitive(True)
+                    else:
+                        grp[0] = old_name
+                    break
+
+    def onDelete(self, widget):
+        """ Handle deletion of a key group """
+        item, itr = self.select.get_selected()
+        if itr:
+            n = 0
+            for grp in self.gpgconf.groups:
+                if grp[0] == self.keygroup:
+                    self.gpgconf.groups.pop(n)
+                    break
+                n += 1
+            item.remove(itr)
+            for n in range(0, len(self.store2)):
+                self.store2[n][0] = False
+            self.delete.set_sensitive(False)
+            self.save.set_sensitive(False)
+            self.ok.set_sensitive(True)
+            self.allkeys.set_active(True)
+
+    def onNew(self, widget):
+        """ Handle creation of a key group """
+        msg = _("Please enter the group name:")
+        name = self.getGroupName(msg)
+        if name:
+            n = len(self.store1)
+            self.store1.append([ name, 0 ])
+            self.gpgconf.groups.append([ name, [] ])
+            self.select.select_path(n)
+            for n in range(0, len(self.store2)):
+                self.store2[n][0] = False
+            self.allkeys.set_active(True)
+
+    def onCopy(self, widget):
+        """ Handle copying of a key group """
+        msg = _("Please enter the new group name:")
+        old_name = self.keygroup
+        for grp in self.gpgconf.groups:
+            if grp[0] == self.keygroup:
+                name = self.getGroupName(msg)
+                if name:
+                    n = len(self.store1)
+                    self.store1.append([ name, len(grp[1]) ])
+                    self.gpgconf.groups.append([ name, list(grp[1]) ])
+                    self.select.select_path(n)
+                    self.keygroup = name
+                    self.save.set_sensitive(False)
+                    self.ok.set_sensitive(True)
+                break
+
+    def onToggled(self, cell, path, model):
+        """ Handle toggling a key item """
+        item, itr = self.select.get_selected()
+        if itr:
+            realpath = Gtk.TreePath.new_from_string(path)
+            chldpath = model.convert_path_to_child_path(realpath)
+            chldmodel = model.get_model()
+            chldmodel[chldpath][0] = not chldmodel[chldpath][0]
+            sensitive = False
+            for row in self.store1:
+                if row[0]:
+                    sensitive = True
+                    break;
+            if not sensitive:
+                for row in self.store2:
+                    if row[0]:
+                        sensitive = True
+                        break;
+            self.save.set_sensitive(sensitive)
+
+    def onChanged(self, widget):
+        """ Handle changes of the filter string """
+        self.results.set_active(True)
+        self.filterstr = self.entry.get_text()
+        self.fmodel.refilter()
+
+    def onApply(self, widget):
+        """ Handle switches between all/selected/filtered view """
+        self.filterstr = self.entry.get_text()
+        self.fmodel.refilter()
+
+    def onSave(self, widget):
+        """ Save changes to key group """
+        if self.keygroup:
+            keylist = []
+            for n in range(0, len(self.store2)):
+                if self.store2[n][0]:
+                    keylist.append(self.store2[n][1])
+            for grp in self.gpgconf.groups:
+                if grp[0] == self.keygroup:
+                    grp[1] = keylist
+                    item, glst = self.select.get_selected_rows()
+                    for n in glst:
+                        item[n][1] = len(keylist)
+                    self.ok.set_sensitive(True)
+                    break
+        self.save.set_sensitive(False)
+
+    def onOk(self, widget):
+        """ Handle OK dialog response """
+        for grp in self.gpgconf.groups:
+            if not grp[1]:
+                msg = _("Some groups are empty.\n" +
+                        "They will not be written to GnuPG configuration file.")
+                gpgmessages.displayMessage(msg, _("Group Editor"),
+                                           Gtk.MessageType.WARNING,
+                                           self.icon)
+                break
+        if self.gpgconf.write_config():
+            msg = _("Groups written to GnuPG configuration file %s.") % \
+                  self.gpgconf.gpgconf
+            gpgmessages.displayMessage(msg, _("Group Editor"),
+                                       Gtk.MessageType.WARNING,
+                                       self.icon)
+        self.window1.destroy()
+
+    def dialogResponse(self, entry, dialog, response):
+        dialog.response(response)
+
+    def entryInsert(self, entry, text, length, position):
+        """ Check group names for validity """
+        for letter in text:
+            if not letter.isalnum() and not letter in "_+-":
+                msg = _("Only letters, digits, '_', '+' and '-' are allowed!")
+                gpgmessages.displayMessage(msg, _("Group Editor"),
+                                           Gtk.MessageType.ERROR,
+                                           self.icon)
+                entry.stop_emission("insert-text")
+                break
+
+    def getGroupName(self, ms):
+        """ Get name for new group from user """
+        dialog = Gtk.MessageDialog(self.window1,
+                                   Gtk.DialogFlags.MODAL |
+                                   Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                                   Gtk.MessageType.QUESTION,
+                                   Gtk.ButtonsType.OK,
+                                   ms)
+        entry = Gtk.Entry()
+        entry.set_max_length(30)
+        entry.set_editable(True)
+        entry.set_visibility(True)
+        entry.connect("insert-text", self.entryInsert)
+        entry.connect("activate", self.dialogResponse, dialog, Gtk.ResponseType.OK)
+        hbox = Gtk.HBox()
+        hbox.pack_start(Gtk.Label(_("Group Name:")), False, 5, 5)
+        hbox.pack_end(entry, True, True, 0)
+        dialog.vbox.pack_end(hbox, True, True, 0)
+        dialog.show_all()
+        dialog.run()
+        name = entry.get_text().strip()
+        dialog.destroy()
+        if name:
+            for grp in self.gpgconf.groups:
+                if grp[0] == name:
+                    msg = _("The group name already exists!")
+                    gpgmessages.displayMessage(msg, _("Group Editor"),
+                                               Gtk.MessageType.ERROR,
+                                               self.icon)
+                    name = ""
+                    break
+        else:
+            msg = _("The group name must not be empty!")
+            gpgmessages.displayMessage(msg, _("Group Editor"),
+                                       Gtk.MessageType.ERROR,
+                                       self.icon)
+        return name
+
+if __name__ == "__main__":
+    GroupApp()
+    Gtk.main()

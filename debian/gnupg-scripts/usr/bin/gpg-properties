@@ -1,0 +1,101 @@
+#!/usr/bin/python
+#
+#  GnuPG-Scripts
+#
+#  Copyright (C) 2016 Discreete Linux Team <info@discreete-linux.org>
+#
+import os
+import sys
+from gi.repository import Gtk
+from gi.repository import GObject
+import gettext
+from subprocess import Popen
+import gpgmessages
+import gpgprocess
+import gpgplatform
+
+# Init translations
+os.environ.setdefault("LANG", "en")
+gettext.install("gnupg-scripts", unicode=1)
+# Init icons
+icon_theme = Gtk.IconTheme.get_default()
+try:
+    icon = icon_theme.load_icon("gnupg-scripts-encrypt", 24, 0)
+except:
+    icon = None
+    pass
+title = _("GnuPG Properties")
+# Get arguments
+files = []
+for line in sys.argv[1:]:
+    files.append(line.decode('utf-8', 'replace'))
+workdir = os.getcwd().decode('utf-8', 'replace')
+
+def checkFile(fname, noDecrypt, quiet):
+    """ Call decrypt on a file, but only to get the recipient keys """
+    global title, icon, workdir
+    # Calling GnuPG with --no-use-agent together with --batch effectively means
+    # "don't decrypt", because there is no way for GnuPG to get the passphrase.
+    # So it just spits out the list of recipient keys and exits.
+    args = [ "--no-use-agent", "-v", "--status-fd", "2", "-o", os.devnull ]
+    args.append(fname)
+    gpgmsg = gpgmessages.GpgMessages(icon, title, "check")
+    try:
+        ret = gpgprocess.gpg(args)
+    except IOError:
+        gpgmessages.startFailed(None, icon, title)
+        return False
+    for line in ret["stderr"]:
+        gpgmsg.parse(fname, line)
+    if gpgmsg.failed:
+        msg = _("The file %s isn't PGP encrypted.\n") % fname
+        gpgmessages.displayMessage(msg, title, Gtk.MessageType.ERROR, icon)
+        return False
+    md = Gtk.Builder()
+    md.add_from_file(os.path.join(gpgplatform.uidir(), u"gpg-properties.ui"))
+    recipients = md.get_object("recipients")
+    recipients.insert_at_cursor(_("File encrypted with:\n") + gpgmsg.keys)
+    if not quiet:
+        if noDecrypt:
+            dialog = md.get_object("dialog2")
+            label = md.get_object("label2")
+        else:
+            dialog = md.get_object("dialog1")
+            label = md.get_object("label1")
+        label.set_label(fname)
+        dialog.show_all()
+        response = dialog.run()
+        if response == 1:
+            Popen(args=[ "gpg-decrypt", fname ], bufsize=-1)
+        dialog.destroy()
+    return True
+
+if __name__ == "__main__":
+    for curfile in files:
+        fname = os.path.basename(curfile)
+        curdir = os.path.dirname(curfile)
+        if curdir:
+            try:
+                os.chdir(curdir)
+            except OSError:
+                continue
+        if os.path.isfile(fname):
+            checkFile(fname, len(files) > 1, False)
+        elif os.path.isdir(fname):
+            ok = True
+            for dirpath, dirs, subfiles in os.walk(fname):
+                for f in subfiles:
+                    fp = os.path.join(dirpath, f)
+                    if not os.path.islink(fp):
+                        ok = checkFile(fp, True, True) and ok
+            if ok:
+                msg = _("All files in %s are PGP encrypted.\n") % fname
+                gpgmessages.displayMessage(msg, title, Gtk.MessageType.INFO, icon)
+        try:
+            os.chdir(workdir)
+        except OSError:
+            break
+
+    if not files:
+        msg = _("Missing at least one file argument to decrypt!")
+        gpgmessages.displayMessage(msg, title, icon=icon)

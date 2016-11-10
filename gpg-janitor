@@ -1,0 +1,197 @@
+#!/usr/bin/python
+"""
+GnuPG-Scripts
+
+Copyright (C) 2011 - 2016 Discreete Linux Team <info@discreete-linux.org>
+
+Module for handling GnuPG processes
+"""
+
+import os
+from gi.repository import Gtk
+import gettext
+import subprocess
+import gpgmessages
+import gpgplatform
+import gpgconf
+import gpgkeys
+import datetime
+from gi.repository import Gtk, Gdk
+from gi.repository import GObject
+
+# Init translations
+os.environ.setdefault("LANG", "en")
+gettext.install("gnupg-scripts", unicode=1)
+
+# Init icons
+icon_theme = Gtk.IconTheme.get_default()
+try:
+    icon = icon_theme.load_icon("gnupg-scripts-encrypt", 24, 0)
+except:
+    pass
+
+class KeyringJanitor(object):
+    def __init__(self):
+        """ read GnuPG configuration """
+        global title, icon
+        super(KeyringJanitor, self).__init__()
+        self.srcconf = gpgconf.SrcConf()
+        self.keylist = []
+        self.readKeys()
+        self.builder = Gtk.Builder()
+        self.builder.add_from_file(os.path.join(gpgplatform.uidir(),"gpg-janitor.ui"))
+        for i in self.builder.get_objects():
+            if "GtkBuildable" in str(GObject.type_interfaces(i)):
+                id = Gtk.Buildable.get_name(i)
+                vars(self)[id] = self.builder.get_object(id)
+        self.rendi0 = self.builder.get_object("rendi0")
+        self.rends1_0 = self.builder.get_object("rends1_0")
+        self.rends2_0 = self.builder.get_object("rends2_0")
+        self.renda0 = self.builder.get_object("renda0")
+        w = (Gdk.Screen.width() - 200)
+        if w > 800:
+            w = 800
+        h = Gdk.Screen.height() - 400
+        h1 = h//5
+        if h1 > 200:
+            h1 = 200
+        elif h1 < 100:
+            h1 = 100
+        self.workdir = os.getcwd()
+        self.scroll1.set_size_request(w, h1)
+        self.scroll2.set_size_request(w, h1)
+        self.scroll3.set_size_request(w, h1)
+        self.scroll4.set_size_request(w, h1)
+        self.store_invalid.set_sort_column_id(4, Gtk.SortType.ASCENDING)
+        self.store_short1.set_sort_column_id(4, Gtk.SortType.ASCENDING)
+        self.store_short2.set_sort_column_id(4, Gtk.SortType.ASCENDING)
+        self.store_aged.set_sort_column_id(4, Gtk.SortType.ASCENDING)
+        
+        for key in self.keylist:
+            if key[4] == True:
+                self.store_invalid.append([ False, key[0], gpgkeys.strDate(key[1]), gpgkeys.strDate(key[2]), key[3]])
+            if (int(key[5]) < 3072) and (int(key[5]) > 2047):
+                self.store_short1.append([ False, key[0], gpgkeys.strDate(key[1]), gpgkeys.strDate(key[2]), key[3]])
+            if int(key[5]) < 2048:
+                self.store_short2.append([ False, key[0], gpgkeys.strDate(key[1]), gpgkeys.strDate(key[2]), key[3]])
+            if int(key[6].days) > 730:
+                self.store_aged.append([ False, key[0], gpgkeys.strDate(key[1]), gpgkeys.strDate(key[2]), key[3]])
+
+        self.rendi0.connect("toggled", self.onToggled, self.store_invalid)
+        self.rends1_0.connect("toggled", self.onToggled, self.store_short1)
+        self.rends2_0.connect("toggled", self.onToggled, self.store_short2)
+        self.renda0.connect("toggled", self.onToggled, self.store_aged)
+
+        self.view1.connect_after("row-activated", self.onActivated,
+                                 self.store_invalid)
+        self.view2.connect_after("row-activated", self.onActivated,
+                                 self.store_short1)
+        self.view3.connect_after("row-activated", self.onActivated,
+                                 self.store_short2)
+        self.view4.connect_after("row-activated", self.onActivated,
+                                 self.store_aged)
+        self.builder.connect_signals(self)
+        self.window1.show_all()
+
+    def readKeys(self):
+        ret = self.gpg([ "--with-colons", "-k" ])
+        for line in ret["stdout"]:
+            invalidEncoding = False
+            try:
+                line = line.decode('UTF-8')
+            except UnicodeError:
+                line = line.decode('UTF-8', 'replace')
+                invalidEncoding = True
+                pass
+            if (line.startswith("pub:f:") or
+                line.startswith("pub:m:") or
+                line.startswith("pub:u:") or
+                line.startswith("pub:-:") or
+                line.startswith("pub:q:")):
+                l = line.split(":")
+                if len(l) < 12 or 'D' in l[11]:
+                    continue
+                keylength = l[2]
+                kid = l[4]
+                ld = l[5].split("-")
+                if len(ld) == 3:
+                    cdate = datetime.date(int(ld[0]), int(ld[1]), int(ld[2]))
+                else:
+                    cdate = None
+                ld = l[6].split("-")
+                if len(ld) == 3:
+                    edate = datetime.date(int(ld[0]), int(ld[1]), int(ld[2]))
+                else:
+                    edate = None
+                skid = kid[9:16]
+                name = l[9].strip()
+                if cdate == None:
+                    keyage = None
+                else: 
+                    keyage = datetime.date.today() - cdate
+                self.keylist.append([ kid, cdate, edate, name, invalidEncoding, keylength, keyage ])                
+            elif (line.startswith("uid:f:") or
+                    line.startswith("uid:m:") or
+                    line.startswith("uid:u:") or
+                    line.startswith("uid:-:") or
+                    line.startswith("uid:q:")):
+                l = line.split(":")
+                self.keylist[-1][3] += "\n"
+                self.keylist[-1][3] += l[9].strip()
+                if invalidEncoding:
+                    self.keylist[-1][4] = True
+        return True
+           
+    def gpg(self, args):
+        "Call gpg with the given argument(s)"
+        arglist = [ gpgplatform.gpg_binary(), "--batch", "--no-tty" ]
+        if type(args) == str:
+            arglist.append(args)
+        else:
+            arglist += args
+        result = {}
+        proc = subprocess.Popen(args=arglist, bufsize=-1, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, universal_newlines=True)
+        result["stdout"] = []
+        result["stderr"] = []
+        for line in proc.stdout:
+            result["stdout"].append(line)
+        for line in proc.stderr:
+            result["stderr"].append(line)
+        result["return-code"] = proc.wait()
+        proc.stdout.close()
+        proc.stderr.close()
+        return result    
+        
+    def gtk_main_quit(self, widget):
+        """ Quits the App """
+        Gtk.main_quit()
+        
+    def onKeyPressed(self, widget, event):
+        """ Handles certain special key events """
+        keyname = Gdk.keyval_name(event.keyval)
+        # Make "Enter" or "Return" act like "OK"
+        if (keyname == "KP_Enter") or (keyname == "Return"):
+            if self.ok.get_sensitive():
+                self.onOk(self)
+            return True
+        # Make "Escape" act like "Cancel"
+        elif keyname == "Escape":
+            self.window1.destroy()
+            return True
+        return False
+        
+    def onActivated(self, treeview, path, column, model):
+        """ Handle activation of key items, i.e. toggle it """
+        self.onToggled(None, path, model)
+
+    def onToggled(self, cell, path, model):
+        """ Handle toggle of a key item """
+        return True
+        
+    def onOk(self, widget):
+        self.gtk_main_quit(widget)
+
+
+KeyringJanitor()
+Gtk.main()

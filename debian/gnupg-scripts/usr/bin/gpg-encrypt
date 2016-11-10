@@ -1,0 +1,584 @@
+#!/usr/bin/python
+#
+#  GnuPG-Scripts
+#
+#  Copyright (C) 2016 Discreete Linux Team <info@discreete-linux.org>
+#
+import os
+import sys
+from gi.repository import Gtk, Gdk
+import gettext
+from gi.repository import GObject
+from datetime import date
+import gpgconf
+import gpgkeys
+import gpgmessages
+import gpgprocess
+import time
+import gpgplatform
+from subprocess import Popen
+
+# Init translations
+os.environ.setdefault("LANG", "en")
+gettext.install("gnupg-scripts", unicode=1)
+
+# Init icons and titles
+icon_theme = Gtk.IconTheme.get_default()
+try:
+    icon = icon_theme.load_icon("gnupg-scripts-encrypt", 24, 0)
+except:
+    icon = None
+    pass
+title = _("Recipient Selection for Encryption")
+packtitle = _("Archive Packing for Encryption")
+shorttitle = _("Encryption")
+duptext = _("Packing failed in attempt to add %s twice to the archive.")
+waittext = _("Creating archive, please wait...")
+warntext1 = _("WARNING: This means the recipient has to try all secret keys in order to decrypt this file!")
+warntext2 = _("WARNING: Using ASCII output nowadays creates more problems than it solves. Use this only if you know you need to.")
+
+# Get arguments
+encfiles = []
+for line in sys.argv[1:]:
+    encfiles.append(line.decode('utf-8', 'replace'))
+
+
+class ArchiveDialog(Gtk.Dialog):
+    """ Asks user whether to pack multiple files as archive """
+    def __init__(self, parent):
+        """ Init and display dialog """
+        global packtitle, icon
+        super(ArchiveDialog, self).__init__(packtitle, parent.window1,
+                                            Gtk.DialogFlags.MODAL |
+                                            Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                                            (Gtk.STOCK_CANCEL,
+                                             Gtk.ResponseType.REJECT,
+                                             Gtk.STOCK_OK,
+                                             Gtk.ResponseType.ACCEPT))
+        self.set_icon(icon)
+        self.pack = False
+        self.archive = parent.srcconf.archive
+        self.removepacked = parent.srcconf.removepacked
+        n = 1
+        name = unicode(date.today().strftime(parent.srcconf.packform))
+        self.arname = name + ("-%d" % n)
+        while (os.path.exists(self.arname + parent.srcconf.archive) or
+               os.path.exists(self.arname + parent.srcconf.archive + ".pgp") or
+               os.path.exists(self.arname + parent.srcconf.archive + ".asc")):
+            n += 1
+            self.arname = name + ("-%d" % n)
+        self.hbox1 = Gtk.HBox(False, 0)
+        btitle1 = _("Pack files into _archive to encrypt them together")
+        self.chk1 = Gtk.CheckButton(label=btitle1, use_underline=True)
+        self.hbox1.pack_start(self.chk1, False, False, 10)
+        self.vbox.pack_start(self.hbox1, False, False, 10)
+        self.hbox2 = Gtk.HBox(False, 0)
+        btitle2 = _("_Remove archive after encryption")
+        self.chk2 = Gtk.CheckButton(label=btitle2, use_underline=True)
+        if self.removepacked:
+            self.chk2.set_active(True)
+        else:
+            self.chk2.set_active(False)
+        self.chk2.set_sensitive(False)
+        self.hbox2.pack_start(self.chk2, False, False, 10)
+        self.vbox.pack_start(self.hbox2, False, False, 10)
+        self.hbox3 = Gtk.HBox(False, 0)
+        self.label1 = Gtk.Label(label="")
+        self.label1.set_markup_with_mnemonic(_("Archive file _name:"))
+        self.hbox3.pack_start(self.label1, False, False, 10)
+        self.label2 = Gtk.Label(label="")
+        self.hbox3.pack_end(self.label2, False, False, 5)
+        self.label3 = Gtk.Label(label=self.archive)
+        self.label3.set_sensitive(False)
+        self.hbox3.pack_end(self.label3, False, False, 0)
+        self.entry = Gtk.Entry()
+        self.entry.set_max_length(40)
+        self.entry.set_alignment(1)
+        self.entry.set_text(self.arname)
+        self.entry.set_sensitive(False)
+        self.entry.set_editable(False)
+        self.label1.set_mnemonic_widget(self.entry)
+        self.hbox3.pack_end(self.entry, True, True, 0)
+        self.vbox.pack_start(self.hbox3, False, False, 10)
+        self.connect("response", self.onResponse)
+        self.chk1.connect("toggled", self.onCheck1)
+        self.chk2.connect("toggled", self.onCheck2)
+        self.show_all()
+
+    def onCheck1(self, widget):
+        """ Handle toggle of button "Pack multiple files - Ask" """
+        if widget.get_active():
+            self.chk2.set_sensitive(True)
+            self.label3.set_sensitive(True)
+            self.entry.set_sensitive(True)
+            self.entry.set_editable(True)
+        else:
+            self.chk2.set_sensitive(False)
+            self.label3.set_sensitive(False)
+            self.entry.set_sensitive(False)
+            self.entry.set_editable(False)
+
+    def onCheck2(self, widget):
+        """ Handle toggle of button "Remove archive after encryption" """
+        if widget.get_active():
+            self.removepacked = True
+        else:
+            self.removepacked = False
+
+    def onResponse(self, widget, response_id):
+        """ Handle users dialog response (OK/Cancel) """
+        if response_id == Gtk.ResponseType.ACCEPT:
+            self.pack = self.chk1.get_active()
+            self.removepacked = self.chk2.get_active()
+            self.arname = self.entry.get_text() +  self.archive
+
+
+class EncryptApp(object):
+    """ Does the actual encryption """
+    def __init__(self):
+        """ Init keylist and display recipient selection dialog """
+        global title, icon
+        super(EncryptApp, self).__init__()
+        self.builder = Gtk.Builder()
+        self.builder.add_from_file(os.path.join(gpgplatform.uidir(),
+                                                u"gpg-encrypt.ui"))
+        for i in self.builder.get_objects():
+            if "GtkBuildable" in str(GObject.type_interfaces(i)):
+                id = Gtk.Buildable.get_name(i)
+                vars(self)[id] = self.builder.get_object(id)
+        self.fmodel = self.builder.get_object("fmodel")
+        self.rendg0 = self.builder.get_object("rendg0")
+        self.rendk0 = self.builder.get_object("rendk0")
+        w = (Gdk.Screen.width() - 200)
+        if w > 800:
+            w = 800
+        h = Gdk.Screen.height() - 400
+        h1 = h//5
+        if h1 > 200:
+            h1 = 200
+        elif h1 < 100:
+            h1 = 100
+        h2 = h - h1
+        if h2 > 600:
+            h2 = 600
+        self.encrypt = True
+        self.arname = ""
+        self.filterstr = ""
+        self.workdir = os.getcwd().decode('utf-8', 'replace')
+        self.gpgconf = gpgconf.GpgConf(self)
+        self.srcconf = gpgconf.SrcConf(self)
+        self.pubkeys = gpgkeys.PubKeys(self)
+        self.seckeys = gpgkeys.SecKeys(self)
+        self.check_defaultkey()
+        self.scroll1.set_size_request(w, h1)
+        self.store1.set_sort_column_id(1, Gtk.SortType.ASCENDING)
+        for grp in self.gpgconf.groups:
+            self.store1.append([ False, grp[0], len(grp[1]) ])
+        self.scroll2.set_size_request(w, h2)
+        self.store2.set_sort_column_id(4, Gtk.SortType.ASCENDING)
+        for key in self.pubkeys.keylist:
+            self.store2.append([ False,
+                                 key[0],
+                                 gpgkeys.strDate(key[1]),
+                                 gpgkeys.strDate(key[2]),
+                                 key[3] ])
+        n = 0
+        self.seckeys.keylist.sort(key = lambda x: x[3])
+        for key in self.seckeys.keylist:
+            i = key[3].find("\n")
+            if i < 0:
+                name = key[3]
+            else:
+                name = key[3][0:i]
+            self.store3.append([name])
+            if key[0] == self.gpgconf.defaultkey:
+                self.combo.set_active(n)
+            n += 1
+        self.store3.append([_("None (do not sign)")])
+        if not self.gpgconf.defaultkey:
+            self.combo.set_active(n)
+        self.chk.set_active(self.srcconf.removeorig)
+        self.fmodel.set_visible_func(self.isVisible)
+        self.rendg0.connect("toggled", self.onToggled1, self.store1)
+        self.rendk0.connect("toggled", self.onToggled2, self.fmodel)
+        self.view1.connect_after("row-activated", self.onActivated1,
+                                 self.store1)
+        self.view2.connect_after("row-activated", self.onActivated2,
+                                 self.fmodel)
+        self.builder.connect_signals(self)
+        self.window1.show_all()
+
+    def gtk_main_quit(self, widget):
+        """ Quits the App """
+        Gtk.main_quit()
+
+    def onThrowidsToggled(self, widget):
+        """ Display warning when "Throw-Keyids" was selected """
+        global warntext1
+        if self.chk2.get_active():
+            self.warntext.set_label(warntext1)
+        else:
+            self.warntext.set_label("")
+
+    def onAsciiToggled(self, widget):
+        """ Display warning when "ASCII output" was selected """
+        global warntext2
+        if self. ascii.get_active():
+            self.warntext2.set_label(warntext2)
+        else:
+            self.warntext2.set_label("")
+
+    def onKeyPressed(self, widget, event):
+        """ Handles certain special key events """
+        keyname = Gdk.keyval_name(event.keyval)
+        # Make "Enter" or "Return" act like "OK"
+        if (keyname == "KP_Enter") or (keyname == "Return"):
+            if self.ok.get_sensitive():
+                self.onOk(self)
+            return True
+        # Make "Escape" act like "Cancel"
+        elif keyname == "Escape":
+            self.window1.destroy()
+            return True
+        return False
+
+    def isVisible(self, model, itr, data=None):
+        """ Return whether a certain key item should be visible """
+        if self.results.get_active() and self.filterstr:
+            namelist = model.get_value(itr, 4).split("\n")
+            for name in namelist:
+                if self.filterstr.lower() in name.lower():
+                    return True
+            else:
+                return False
+        elif self.selkeys.get_active():
+            if self.srcconf.enctoself and self.gpgconf.defaultkey:
+                n = self.combo.get_active()
+                if (n >= 0 and n < len(self.seckeys.keylist) and
+                    self.gpgconf.defaultkey == model.get_value(itr, 1)):
+                        return True
+            for row in self.store1:
+                if row[0]:
+                    for grp in self.gpgconf.groups:
+                        if row[1] == grp[0]:
+                            for key in grp[1]:
+                                if key == model.get_value(itr, 1):
+                                    return True
+                            break
+            return model.get_value(itr, 0)
+        else:
+            return True
+
+    def onActivated1(self, treeview, path, column, model):
+        """ Handle activation of key groups, i.e. toggle it """
+        self.onToggled1(None, path, model)
+
+    def onActivated2(self, treeview, path, column, model):
+        """ Handle activation of key items, i.e. toggle it """
+        self.onToggled2(None, path, model)
+
+    def onToggled1(self, cell, path, model):
+        """ Handle toggle of a key group item """
+        model[path][0] = not model[path][0]
+        sensitive = False
+        for row in self.store1:
+            if row[0]:
+                sensitive = True
+                break;
+        if not sensitive:
+            for row in self.store2:
+                if row[0]:
+                    sensitive = True
+                    break;
+        self.ok.set_sensitive(sensitive)
+        self.onChanged(model)
+
+    def onToggled2(self, cell, path, model):
+        """ Handle toggle of a key item """
+        realpath = Gtk.TreePath.new_from_string(path)
+        chldpath = model.convert_path_to_child_path(realpath)
+        chldmodel = model.get_model()
+        self.onToggled1(cell, chldpath, chldmodel)
+
+    def onChanged(self, widget):
+        """ Handle changes of the filter string """
+        self.results.set_active(True)
+        self.filterstr = self.entry.get_text()
+        self.fmodel.refilter()
+
+    def onApply(self, widget):
+        """ Handle switches between all/selected/filtered view """
+        self.filterstr = self.entry.get_text()
+        self.fmodel.refilter()
+
+    def onOk(self, widget):
+        """ Handle OK response """
+        global encfiles
+        self.window1.get_window().set_cursor(Gdk.Cursor.new(Gdk.CursorType.WATCH))
+        self.window1.set_sensitive(False)
+        self.progressbar.show()
+        self.throwids = self.chk2.get_active()
+        self.armor = self.ascii.get_active()
+        if self.armor:
+            self.extension = ".asc"
+        else:
+            self.extension = ".pgp"
+        pack, removepacked = self.generateArchiveName()
+        if self.encrypt and pack:
+            self.doPack()
+        if self.encrypt:
+            self.doEncrypt(pack, removepacked)
+        self.window1.destroy()
+
+    def generateArchiveName(self):
+        global encfiles
+        removepacked = self.srcconf.removepacked
+        isdir = len(encfiles) == 1 and os.path.isdir(encfiles[0])
+        pack = isdir or len(encfiles) > 1
+        if pack and self.srcconf.pack == "yes":
+            pack = True
+        elif pack and not isdir and self.srcconf.pack == "ask":
+            dlg = ArchiveDialog(self)
+            if dlg.run() == Gtk.ResponseType.ACCEPT:
+                pack = dlg.pack
+                removepacked = dlg.removepacked
+                self.arname = dlg.arname
+            else:
+                self.encrypt = False
+            dlg.destroy()
+        else:
+            pack = isdir
+        if not self.arname:
+            n = 1
+            name = date.today().strftime(self.srcconf.packform)
+            if not os.path.isabs(name) and encfiles:
+                d = os.path.dirname(encfiles[0])
+                if d:
+                    name = os.path.join(d, os.path.basename(name))
+            self.arname = name + ("-%d" % n) + self.srcconf.archive
+            while (os.path.exists(self.arname) or
+                   os.path.exists(self.arname + self.extension)):
+                n += 1
+                self.arname = name + ("-%d" % n) + self.srcconf.archive
+        elif not os.path.isabs(self.arname) and encfiles:
+            d = os.path.dirname(encfiles[0])
+            if d:
+                self.arname = os.path.join(d, os.path.basename(self.arname))
+        if (os.path.exists(self.arname) or
+            os.path.exists(self.arname + self.extension)):
+            if not os.path.isabs(self.arname) and encfiles:
+                d = os.path.dirname(encfiles[0])
+                if d:
+                    self.arname = \
+                    os.path.join(d, os.path.basename(self.arname))
+            msg = _("Files {0} and/or {0}.pgp exist already!\nShall they be overwritten?").format(self.arname.decode('UTF-8', 'replace'))
+            self.encrypt = gpgmessages.yesNoQuestion(msg, icon, packtitle,
+                                                     self.window1)
+
+        return pack, removepacked
+
+    def doPack(self):
+        """ Pack multiple files into ZIP or TAR archive """
+        global packtitle, duptext, waittext, icon, encfiles
+        try:
+            if self.encrypt:
+                if (os.path.exists(self.arname + self.extension)):
+                    os.remove(self.arname + self.extension)
+                if self.srcconf.archive == ".zip":
+                    pt = gpgprocess.ZipThread(encfiles, self.arname, duptext,
+                                              self.workdir,
+                                              self.chk.get_active())
+                elif self.srcconf.archive == ".tar.bz2":
+                    pt = gpgprocess.TarThread(encfiles, self.arname, duptext,
+                                              "w:bz2", self.workdir,
+                                              self.chk.get_active())
+                else:
+                    pt = gpgprocess.TarThread(encfiles, self.arname, duptext,
+                                              "w:gz", self.workdir,
+                                              self.chk.get_active())
+                self.progressbar.set_text(waittext)
+                pt.start()
+                while pt.is_alive():
+                    self.progressbar.pulse()
+                    while Gtk.events_pending():
+                        Gtk.main_iteration()
+                    time.sleep(.25)
+                pt.join()
+                encfiles = pt.response()
+                if not encfiles:
+                    self.encrypt = False
+                    if os.path.exists(self.arname):
+                        os.remove(self.arname)
+        except IOError as (errno, strerror):
+            ms = _("Creating archive failed:\n")
+            ms += _(strerror)
+            gpgmessages.displayMessage(ms, _("Archive Packing"), icon=icon)
+            self.encrypt = False
+            if os.path.exists(self.arname):
+                os.remove(self.arname)
+
+    def appendSignerAndRecipients(self, args):
+        """ Append recipient keys and default key to gpg arg list """
+        n = self.combo.get_active()
+        if n >= 0 and n < len(self.seckeys.keylist):
+            args.append("-esu")
+            args.append(self.seckeys.keylist[n][0])
+        else:
+            args.append("-e")
+        if self.srcconf.enctoself and self.gpgconf.defaultkey:
+            args.append("-r")
+            args.append(self.gpgconf.defaultkey)
+        for row in self.store1:
+            if row[0]:
+                args.append("-r")
+                args.append(row[1])
+        for row in self.store2:
+            if row[0]:
+                args.append("-r")
+                args.append(row[1])
+
+    def doEncrypt(self, pack, remove):
+        """ Encrypt a file with the selected keys """
+        global encfiles
+        args = [ "--use-agent" ]
+        if self.srcconf.unsigned_keys:
+            args.append("--trust-model")
+            args.append("always")
+        if self.throwids:
+            args.append("--throw-keyids")
+        if self.armor:
+            args.append("-a")
+        self.appendSignerAndRecipients(args)
+        for curfile in encfiles:
+            curfile = curfile.rstrip(os.sep)
+            fname = os.path.basename(curfile)
+            curdir = os.path.dirname(curfile)
+            if curdir:
+                try:
+                    os.chdir(curdir)
+                except OSError:
+                    continue
+            curargs = list(args)
+            curargs.append("-o")
+            if pack and os.path.isdir(fname):
+                if not self.encryptDir(curfile, curargs, remove):
+                    break
+            elif os.path.isfile(fname):
+                curargs.append(fname + self.extension)
+                curargs.append(fname)
+                if not self.encryptFile(curargs):
+                    break
+                if self.chk.get_active():
+                    os.remove(fname)
+            try:
+                os.chdir(self.workdir)
+            except OSError:
+                break
+        if pack and remove and not self.chk.get_active():
+            os.remove(self.arname)
+
+    def encryptDir(self, dirname, args, remove):
+        """ Encrypt a directory as ZIP or TAR archive """
+        global duptext, waittext
+        if self.srcconf.archive == ".zip":
+            pt = gpgprocess.ZipThread([dirname], self.arname, duptext,
+                                      self.workdir,
+                                      self.chk.get_active())
+        elif self.srcconf.archive == ".tar.bz2":
+            pt = gpgprocess.TarThread([dirname], self.arname, duptext,
+                                      "w:bz2", self.workdir,
+                                      self.chk.get_active())
+        else:
+            pt = gpgprocess.TarThread([dirname], self.arname, duptext,
+                                      "w:gz", self.workdir,
+                                      self.chk.get_active())
+        self.progressbar.set_text(waittext)
+        pt.start()
+        while pt.is_alive():
+            self.progressbar.pulse()
+            while Gtk.events_pending():
+                Gtk.main_iteration()
+            time.sleep(.25)
+        pt.join()
+        args.append(self.arname + self.extension)
+        args.append(self.arname)
+        ret = self.encryptFile(args)
+        if remove:
+            os.remove(self.arname)
+        return ret
+
+    def encryptFile(self, args):
+        """ Do the actual encryption and handle errors """
+        global shorttitle, icon
+        output = ""
+        self.progressbar.set_text(_("Encrypting files, please wait..."))
+        try:
+            gpgt = gpgprocess.GpgThread(args)
+            gpgt.start()
+            while gpgt.is_alive():
+                self.progressbar.pulse()
+                while Gtk.events_pending():
+                    Gtk.main_iteration()
+                time.sleep(.25)
+            gpgt.join()
+            result = gpgt.response()
+        except IOError:
+            gpgmessages.startFailed(None, icon, shorttitle)
+            return False
+        if (result["return-code"] != 0):
+            gpgmsg = gpgmessages.GpgMessages(icon, shorttitle, "encrypt")
+            fname = args.pop()
+            for line in result["stderr"]:
+                if not gpgmsg.parse(fname, line.strip()):
+                    break
+            if gpgmsg.badpass:
+                output = gpgmsg.badpass_msg
+            elif gpgmsg.failopen:
+                output = gpgmsg.failopen_msg % fname
+            elif gpgmsg.badkey:
+                output = gpgmsg.badkey_msg
+            else:
+                output = gpgmsg.messages
+            msg = fname + ":\n" + _("Encryption failed:\n") + output
+            gpgmessages.displayMessage(msg, shorttitle, icon=icon)
+            return False
+        return True
+
+    def check_defaultkey(self):
+        """ Check that we have a valid default key.
+            If not remind user to select one. """
+        global shorttitle, icon
+        if self.gpgconf.defaultkey:
+            print "default key =", self.gpgconf.defaultkey
+            result = self.pubkeys.check_key(self.gpgconf.defaultkey)
+            if result[0] == "v":
+                return
+            elif result[0] == "e":
+                msg = _("Your default key '%s' has expired.\n")
+            elif result[0] == "d":
+                msg = _("Your default key '%s' has been disabled.\n")
+            elif result[0] == "r":
+                msg = _("Your default key '%s' has been revoked.\n")
+            elif result[0] == "s":
+                msg = _("Your default key '%s' can only be used for signing.\n")
+            elif result[0] == "unknown":
+                msg = _("Your default key '%s' is unknown.\n")
+            else:
+                msg = _("Your default key '%s' is invalid.\n")
+            msg = msg % (result[1] or self.gpgconf.defaultkey)
+            msg += _("This will cause problems.\nDo you want to select another one now?")
+        else:
+            msg = _("You have no default key.\nThis will cause problems.\nDo you want to select one now?")
+        if (gpgmessages.yesNoQuestion(msg, icon, shorttitle)):
+            proc = Popen(args=[ "gpg-config", "--signing-page" ], bufsize=-1)
+            proc.wait()
+            self.gpgconf.read_config()
+            print "default key =", self.gpgconf.defaultkey
+
+
+if encfiles:
+    EncryptApp()
+    Gtk.main()
+else:
+    msg = _("Missing at least one file argument to encrypt!")
+    gpgmessages.displayMessage(msg, shorttitle, icon=icon)

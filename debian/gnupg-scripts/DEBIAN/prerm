@@ -1,0 +1,7 @@
+#!/bin/bash -e
+#
+# prerm for GnuPG-Scripts
+#
+# remove python byte code files
+dpkg -L gnupg-scripts | awk '$0 ~ /.py$/ { print $0 "c" }' | xargs rm -f
+exit 0

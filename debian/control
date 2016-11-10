@@ -1,0 +1,18 @@
+Source: gnupg-scripts
+Section: unknown
+Priority: optional
+Maintainer: Discreete Linux Team <info@discreete-linux.org>
+Build-Depends: debhelper (>= 9), dh-python
+Standards-Version: 3.9.5
+Homepage: <insert the upstream URL, if relevant>
+#Vcs-Git: git://anonscm.debian.org/collab-maint/gnupg-scripts.git
+#Vcs-Browser: http://anonscm.debian.org/?p=collab-maint/gnupg-scripts.git;a=summary
+
+Package: gnupg-scripts
+Architecture: all
+Depends: ${misc:Depends}, desktop-file-utils, gnupg , gnupg-agent, nemo-python, python-magic
+Description: Python scripts that invoke gpg
+ gnupg-scripts provides python scripts that invoke gpg for encryption and
+ decryption, signatures and verification from within nautilus; moreover,
+ an editor for key groups and a script for configuration of the default key
+ and other options of gnupg and gnupg-scripts is provided

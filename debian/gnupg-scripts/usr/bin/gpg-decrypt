@@ -1,0 +1,181 @@
+#!/usr/bin/python
+#
+#  GnuPG-Scripts
+#
+#  Copyright (C) 2016 Discreete Linux Team <info@discreete-linux.org>
+#
+import os
+import sys
+from gi.repository import Gtk
+import magic
+import tarfile
+import zipfile
+import gettext
+import gpgconf
+import gpgmessages
+import gpgprocess
+import gpgplatform
+import time
+
+# Init translations
+os.environ.setdefault("LANG", "en")
+gettext.install("gnupg-scripts", unicode=1)
+# Init icons
+icon_theme = Gtk.IconTheme.get_default()
+try:
+    icon = icon_theme.load_icon("gnupg-scripts-encrypt", 24, 0)
+except:
+    icon = None
+    pass
+title = _("Decryption")
+# Get arguments and work dir
+files = []
+for line in sys.argv[1:]:
+    files.append(line.decode('utf-8', 'replace'))
+workdir = os.getcwd().decode('utf-8', 'replace')
+# Init MIME magic library
+cookie = magic.open(magic.MAGIC_MIME)
+cookie.load()
+pb = Gtk.Builder()
+pb.add_from_file(os.path.join(gpgplatform.uidir(), u"gpg-progress.ui"))
+
+def decryptFile(fname):
+    """ Decrypt an encrypted file """
+    global title, icon, workdir, pb
+    pb.get_object("label1").set_text(_("Decrypting files, please wait..."))
+    pb.get_object("window1").set_title(_("Decrypting"))
+    ret = True
+    outname = fname + u".tmp"
+    args = [ "--use-agent", "-v", "--status-fd", "2", "-o", outname, fname ]
+    gpgconfig = gpgconf.GpgConf()
+    gpgmsg = gpgmessages.GpgMessages(icon, title, u"decrypt")
+    gpgprocess.waitUntilPriorGpgDecryptsFinished()
+    try:
+        gpgt = gpgprocess.GpgThread(args)
+        gpgt.start()
+        pb.get_object("window1").show_all()
+        while gpgt.is_alive():
+            pb.get_object("progressbar1").pulse()
+            while Gtk.events_pending():
+                Gtk.main_iteration()
+            time.sleep(.25)
+        gpgt.join()
+        pb.get_object("window1").hide()
+        ret = gpgt.response()
+    except IOError:
+        gpgmessages.startFailed(None, icon, title)
+        return False
+
+    for line in ret["stderr"]:
+        if not gpgmsg.parse(fname, line):
+            return False
+
+    if gpgmsg.cancelled and not os.path.exists(outname):
+        return False
+
+    if gpgmsg.signed and (gpgmsg.sigstate == "valid"):
+        msg = (fname + ":\n" + _("gpg: Good signature from ") +
+               gpgmsg.signer + "\n" + gpgmsg.create_msg + unicode(gpgmsg.date))
+        gpgmessages.displayMessage(msg, title, Gtk.MessageType.INFO, icon)
+    elif gpgmsg.signed and (gpgmsg.sigstate == "bad"):
+        msg = (fname + ":\n" + _("gpg: BAD signature from ") +
+               gpgmsg.signer + "\n"  + gpgmsg.create_msg + unicode(gpgmsg.date))
+        gpgmessages.displayMessage(msg, title, icon=icon)
+    elif gpgmsg.signed and (gpgmsg.sigstate == "expired"):
+        msg = (fname + ":\n" + _("gpg: Good signature from ") + gpgmsg.signer +
+               "\n" + gpgmsg.create_msg + unicode(gpgmsg.date) + "\n" +
+               _("But signature key has expired on %s") % unicode(gpgmsg.expire))
+        gpgmessages.displayMessage(msg, title, Gtk.MessageType.WARNING, icon)        
+    if not gpgmsg.signed and not gpgmsg.failed:
+        msg = _("%s is not signed!") % fname
+        gpgmessages.displayMessage(msg, title, Gtk.MessageType.WARNING, icon)
+
+    if gpgmsg.failed:
+        return False
+
+    if not os.path.exists(outname):
+        gpgmessages.displayMessage(_("GPG produced no output!"), icon=icon)
+        return False
+
+    if not (gpgconfig.use_embedded_filename and gpgmsg.origname):
+        if os.path.splitext(fname)[1] in [".gpg", ".pgp", ".asc"]:
+            gpgmsg.origname = os.path.splitext(fname)[0]
+        else:
+            gpgmsg.origname = fname + ".out"
+    if os.path.exists(gpgmsg.origname):
+        n = 2
+        i = os.path.splitext(gpgmsg.origname)
+        while os.path.exists(i[0] + ("-%d" % n) + i[1]):
+            n += 1
+        gpgmsg.origname = i[0] + ("-%d" % n) + i[1]
+    os.rename(outname, gpgmsg.origname)
+    unpackFile(gpgmsg.origname)
+    return ret
+
+def getUnpack(outname, srcconf):
+    """ Determine whether to unpack an archive """
+    if srcconf.unpack == "yes":
+        unpack = True
+    elif srcconf.unpack == "ask":
+        msg = _("Shall %s be unpacked?") % outname.decode('UTF-8', 'replace')
+        unpacktitle = _("Archive Unpacking after Decryption")
+        unpack = gpgmessages.yesNoQuestion(msg, icon, unpacktitle, None)
+    else:
+        unpack = False
+    return unpack
+
+def unpackFile(outname):
+    """ unpack file if it is an archive """
+    srcconf = gpgconf.SrcConf()
+    mtype = cookie.file(outname)
+    if mtype and (mtype.startswith("application/zip") or
+                  mtype.startswith("application/x-bzip2") or
+                  mtype.startswith("application/x-gzip")):
+        unpack = getUnpack(outname, srcconf)
+        if unpack and zipfile.is_zipfile(outname):
+            ut = gpgprocess.UnzipThread(outname)
+        elif unpack and tarfile.is_tarfile(outname):
+            ut = gpgprocess.UntarThread(outname)
+        if unpack:
+            pb.get_object("label1").set_text(_("Unpacking files, please wait..."))
+            pb.get_object("window1").set_title(_("Unpacking"))
+            ut.start()
+            pb.get_object("window1").show_all()
+            while ut.is_alive():
+                pb.get_object("progressbar1").pulse()
+                while Gtk.events_pending():
+                    Gtk.main_iteration()
+                time.sleep(.25)
+            ut.join()
+            pb.get_object("window1").hide()
+            unpack = ut.response()
+        if unpack and srcconf.removeunpacked:
+            os.remove(outname)
+
+if __name__ == "__main__":
+    if not files:
+        msg = _("Missing at least one file argument to decrypt!")
+        gpgmessages.displayMessage(msg, title, icon=icon)
+        sys.exit(0)
+    for curfile in files:
+        fname = os.path.basename(curfile)
+        curdir = os.path.dirname(curfile)
+        if curdir:
+            try:
+                os.chdir(curdir)
+            except OSError:
+                continue
+        if os.path.isfile(fname):
+            if not decryptFile(fname):
+                break
+        elif os.path.isdir(fname):
+            for dirpath, dirs, subfiles in os.walk(fname):
+                for f in subfiles:
+                    fp = os.path.join(dirpath, f)
+                    if not os.path.islink(fp) and not decryptFile(fp):
+                        break
+        try:
+            os.chdir(workdir)
+        except OSError:
+            break
+

@@ -1,0 +1,819 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: gnupg-scripts 0.10-8\n"
+"Report-Msgid-Bugs-To: Discreete Linux Team <info@discreete-linux.org>\n"
+"POT-Creation-Date: 2016-06-23 13:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: gpg-encrypt:32 gpg-encrypt.ui:41 gpg-janitor.ui:63
+msgid "Recipient Selection for Encryption"
+msgstr ""
+
+#: gpg-encrypt:33
+msgid "Archive Packing for Encryption"
+msgstr ""
+
+#: gpg-encrypt:34 gpg-config.ui:154
+msgid "Encryption"
+msgstr ""
+
+#: gpg-encrypt:35
+#, python-format
+msgid "Packing failed in attempt to add %s twice to the archive."
+msgstr ""
+
+#: gpg-encrypt:36
+msgid "Creating archive, please wait..."
+msgstr ""
+
+#: gpg-encrypt:37
+msgid ""
+"WARNING: This means the recipient has to try all secret keys in order to "
+"decrypt this file!"
+msgstr ""
+
+#: gpg-encrypt:38
+msgid ""
+"WARNING: Using ASCII output nowadays creates more problems than it solves. "
+"Use this only if you know you need to."
+msgstr ""
+
+#: gpg-encrypt:69
+msgid "Pack files into _archive to encrypt them together"
+msgstr ""
+
+#: gpg-encrypt:74
+msgid "_Remove archive after encryption"
+msgstr ""
+
+#: gpg-encrypt:85
+msgid "Archive file _name:"
+msgstr ""
+
+#: gpg-encrypt:195
+msgid "None (do not sign)"
+msgstr ""
+
+#: gpg-encrypt:372
+msgid ""
+"Files {0} and/or {0}.pgp exist already!\n"
+"Shall they be overwritten?"
+msgstr ""
+
+#: gpg-encrypt:411
+msgid "Creating archive failed:\n"
+msgstr ""
+
+#: gpg-encrypt:413 gpgprocess.py:106 gpgprocess.py:165
+msgid "Archive Packing"
+msgstr ""
+
+#: gpg-encrypt:512
+msgid "Encrypting files, please wait..."
+msgstr ""
+
+#: gpg-encrypt:540
+msgid "Encryption failed:\n"
+msgstr ""
+
+#: gpg-encrypt:555
+#, python-format
+msgid "Your default key '%s' has expired.\n"
+msgstr ""
+
+#: gpg-encrypt:557
+#, python-format
+msgid "Your default key '%s' has been disabled.\n"
+msgstr ""
+
+#: gpg-encrypt:559
+#, python-format
+msgid "Your default key '%s' has been revoked.\n"
+msgstr ""
+
+#: gpg-encrypt:561
+#, python-format
+msgid "Your default key '%s' can only be used for signing.\n"
+msgstr ""
+
+#: gpg-encrypt:563
+#, python-format
+msgid "Your default key '%s' is unknown.\n"
+msgstr ""
+
+#: gpg-encrypt:565
+#, python-format
+msgid "Your default key '%s' is invalid.\n"
+msgstr ""
+
+#: gpg-encrypt:567
+msgid ""
+"This will cause problems.\n"
+"Do you want to select another one now?"
+msgstr ""
+
+#: gpg-encrypt:569
+msgid ""
+"You have no default key.\n"
+"This will cause problems.\n"
+"Do you want to select one now?"
+msgstr ""
+
+#: gpg-encrypt:581
+msgid "Missing at least one file argument to encrypt!"
+msgstr ""
+
+#: gpg-decrypt:30
+msgid "Decryption"
+msgstr ""
+
+#: gpg-decrypt:43
+msgid "Decrypting files, please wait..."
+msgstr ""
+
+#: gpg-decrypt:44
+msgid "Decrypting"
+msgstr ""
+
+#: gpg-decrypt:75 gpg-decrypt:83 gpgmessages.py:117
+msgid "gpg: Good signature from "
+msgstr ""
+
+#: gpg-decrypt:79 gpgmessages.py:118
+msgid "gpg: BAD signature from "
+msgstr ""
+
+#: gpg-decrypt:85 gpgmessages.py:125
+#, python-format
+msgid "But signature key has expired on %s"
+msgstr ""
+
+#: gpg-decrypt:88
+#, python-format
+msgid "%s is not signed!"
+msgstr ""
+
+#: gpg-decrypt:95
+msgid "GPG produced no output!"
+msgstr ""
+
+#: gpg-decrypt:118
+#, python-format
+msgid "Shall %s be unpacked?"
+msgstr ""
+
+#: gpg-decrypt:119
+msgid "Archive Unpacking after Decryption"
+msgstr ""
+
+#: gpg-decrypt:138
+msgid "Unpacking files, please wait..."
+msgstr ""
+
+#: gpg-decrypt:139
+msgid "Unpacking"
+msgstr ""
+
+#: gpg-decrypt:155 gpg-properties:98
+msgid "Missing at least one file argument to decrypt!"
+msgstr ""
+
+#: gpg-sign:28 gpg-sign.ui:14
+msgid "Signature"
+msgstr ""
+
+#: gpg-sign:119
+msgid "Signing failed:\n"
+msgstr ""
+
+#: gpg-sign:129
+msgid "Missing at least one file argument to sign!"
+msgstr ""
+
+#: gpg-verify:25
+msgid "Signature Verification"
+msgstr ""
+
+#: gpg-verify:41
+msgid "Signed Data Selection"
+msgstr ""
+
+#: gpg-verify:95
+msgid "Missing at least one file argument to verify!"
+msgstr ""
+
+#: gpg-properties:27
+msgid "GnuPG Properties"
+msgstr ""
+
+#: gpg-properties:49 gpgmessages.py:124
+#, python-format
+msgid "The file %s isn't PGP encrypted.\n"
+msgstr ""
+
+#: gpg-properties:55 gpgmessages.py:178
+msgid "File encrypted with:\n"
+msgstr ""
+
+#: gpg-properties:90
+#, python-format
+msgid "All files in %s are PGP encrypted.\n"
+msgstr ""
+
+#: gpg-import:18
+msgid "Import"
+msgstr ""
+
+#: gpg-import:28 gpg-import.ui:18
+msgid "Importing keys, Please Wait..."
+msgstr ""
+
+#: gpg-import:75
+#, python-format
+msgid ""
+"The following keys are damaged and were NOT imported:\n"
+"%s\n"
+"\n"
+msgstr ""
+
+#: gpg-import:78
+#, python-format
+msgid ""
+"The following keys were imported successfully:\n"
+"%s\n"
+"\n"
+msgstr ""
+
+#: gpg-import:80
+#, python-format
+msgid ""
+"The following keys were unchanged:\n"
+"%s\n"
+"\n"
+msgstr ""
+
+#: gpg-import:82
+#, python-format
+msgid ""
+"The following key files could not be found:\n"
+"%s\n"
+"\n"
+msgstr ""
+
+#: gpg-import:89
+msgid "Missing at least one file argument to import!"
+msgstr ""
+
+#: gpg-config:83
+msgid "%y year two-digit\t%Y year four-digit\n"
+msgstr ""
+
+#: gpg-config:84
+msgid "%m month\t\t%d day\n"
+msgstr ""
+
+#: gpg-config:85
+msgid "%H hour\t\t\t%M minute\n"
+msgstr ""
+
+#: gpg-config:86
+msgid "%a weekday 3 letters\t%A weekday full\n"
+msgstr ""
+
+#: gpg-config:87
+msgid "%b month 3 letters\t%B month full\n"
+msgstr ""
+
+#: gpg-config:88
+msgid "%V calendar week"
+msgstr ""
+
+#: gpg-config:158
+#, python-format
+msgid "GnuPG configuration file %s written successfully."
+msgstr ""
+
+#: gpg-config:160
+msgid "Success"
+msgstr ""
+
+#: gpg-config:164
+msgid "Select a key before clicking OK!"
+msgstr ""
+
+#: gpg-config:165
+msgid "Select a key"
+msgstr ""
+
+#: gpg-config:202
+#, python-format
+msgid "The group '%s' has been updated.\n"
+msgstr ""
+
+#: gpg-config:204
+#, python-format
+msgid "%d unusable keys have been removed:\n"
+msgstr ""
+
+#: gpg-config:206
+msgid "1 unusable key has been removed:\n"
+msgstr ""
+
+#: gpg-config:210 gpgmessages.py:131
+msgid "unknown key"
+msgstr ""
+
+#: gpg-config:213 gpg-group-edit:210
+msgid "Group Update"
+msgstr ""
+
+#: gpg-group-edit:143
+#, python-format
+msgid "%d revoked keys have been removed:\n"
+msgstr ""
+
+#: gpg-group-edit:144
+msgid "1 revoked key has been removed:\n"
+msgstr ""
+
+#: gpg-group-edit:146
+#, python-format
+msgid "%d expired keys have been removed:\n"
+msgstr ""
+
+#: gpg-group-edit:147
+msgid "1 expired key has been removed:\n"
+msgstr ""
+
+#: gpg-group-edit:149
+#, python-format
+msgid "%d disabled keys have been removed:\n"
+msgstr ""
+
+#: gpg-group-edit:150
+msgid "1 disabled key has been removed:\n"
+msgstr ""
+
+#: gpg-group-edit:152
+#, python-format
+msgid "%d untrustworthy keys have been removed:\n"
+msgstr ""
+
+#: gpg-group-edit:153
+msgid "1 untrustworthy key has been removed:\n"
+msgstr ""
+
+#: gpg-group-edit:155
+#, python-format
+msgid "%d signature-only keys have been removed:\n"
+msgstr ""
+
+#: gpg-group-edit:156
+msgid "1 signature-only key has been removed:\n"
+msgstr ""
+
+#: gpg-group-edit:158
+#, python-format
+msgid "%d unknown keys have been removed:\n"
+msgstr ""
+
+#: gpg-group-edit:159
+msgid "1 unknown key has been removed:\n"
+msgstr ""
+
+#: gpg-group-edit:199
+msgid "The group is up to date."
+msgstr ""
+
+#: gpg-group-edit:201
+msgid "The group has been updated.\n"
+msgstr ""
+
+#: gpg-group-edit:218 gpg-group-edit:268
+msgid "Please enter the new group name:"
+msgstr ""
+
+#: gpg-group-edit:255
+msgid "Please enter the group name:"
+msgstr ""
+
+#: gpg-group-edit:335
+msgid "Some groups are empty.\n"
+msgstr ""
+
+#: gpg-group-edit:337 gpg-group-edit:344 gpg-group-edit:357 gpg-group-edit:389
+#: gpg-group-edit:396 gpg-group-edit.ui:33
+msgid "Group Editor"
+msgstr ""
+
+#: gpg-group-edit:342
+#, python-format
+msgid "Groups written to GnuPG configuration file %s."
+msgstr ""
+
+#: gpg-group-edit:356
+msgid "Only letters, digits, '_', '+' and '-' are allowed!"
+msgstr ""
+
+#: gpg-group-edit:378
+msgid "Group Name:"
+msgstr ""
+
+#: gpg-group-edit:388
+msgid "The group name already exists!"
+msgstr ""
+
+#: gpg-group-edit:395
+msgid "The group name must not be empty!"
+msgstr ""
+
+#: gnupg-extension.py:54
+msgid "Encrypt"
+msgstr ""
+
+#: gnupg-extension.py:55
+msgid "Encrypt the file(s) with GnuPG"
+msgstr ""
+
+#: gnupg-extension.py:59
+msgid "Sign"
+msgstr ""
+
+#: gnupg-extension.py:60
+msgid "Signs the selected file with a detached signature"
+msgstr ""
+
+#: gpgconf.py:84
+#, python-format
+msgid "Error writing GnuPG configuration file %s!"
+msgstr ""
+
+#: gpgconf.py:85 gpgconf.py:203
+msgid "Error"
+msgstr ""
+
+#: gpgconf.py:202
+#, python-format
+msgid "Error writing script configuration file %s!"
+msgstr ""
+
+#: gpgkeys.py:28
+msgid "never"
+msgstr ""
+
+#: gpgmessages.py:70
+msgid "Can't start program gpg!"
+msgstr ""
+
+#: gpgmessages.py:90
+msgid "gpg: cancelled by user"
+msgstr ""
+
+#: gpgmessages.py:91
+msgid "gpg: original file name="
+msgstr ""
+
+#: gpgmessages.py:92
+msgid "gpg: the signature could not be verified."
+msgstr ""
+
+#: gpgmessages.py:93
+msgid "gpg: WARNING:"
+msgstr ""
+
+#: gpgmessages.py:94
+msgid "gpg: fatal: "
+msgstr ""
+
+#: gpgmessages.py:95
+msgid ": sign+encrypt failed: bad passphrase"
+msgstr ""
+
+#: gpgmessages.py:96
+msgid ": sign+encrypt failed: unusable public key"
+msgstr ""
+
+#: gpgmessages.py:97
+#, python-format
+msgid "gpg: can't open `%s': "
+msgstr ""
+
+#: gpgmessages.py:98
+msgid ": skipped: public key already present"
+msgstr ""
+
+#: gpgmessages.py:119
+msgid "Bad passphrase"
+msgstr ""
+
+#: gpgmessages.py:120
+msgid "Unusable public key"
+msgstr ""
+
+#: gpgmessages.py:121
+#, python-format
+msgid "Can't open %s."
+msgstr ""
+
+#: gpgmessages.py:122
+msgid "Signature created "
+msgstr ""
+
+#: gpgmessages.py:123
+#, python-format
+msgid "The signature %s seems to be damaged."
+msgstr ""
+
+#: gpgmessages.py:126
+msgid "not changed"
+msgstr ""
+
+#: gpgmessages.py:127
+#, python-format
+msgid "gpg: import from `%s' failed:"
+msgstr ""
+
+#: gpgmessages.py:147
+msgid "Missing public key: "
+msgstr ""
+
+#: gpgmessages.py:149
+msgid "Unknown algorithm"
+msgstr ""
+
+#: gpgmessages.py:151
+msgid "Unknown reason"
+msgstr ""
+
+#: gpgmessages.py:177
+msgid "gpg: decryption failed:"
+msgstr ""
+
+#: gpgmessages.py:198
+msgid "gpg: Can't check signature:"
+msgstr ""
+
+#: gpgmessages.py:226
+msgid "A fatal error occurred:\n"
+msgstr ""
+
+#: gpgprocess.py:207 gpgprocess.py:247
+#, python-format
+msgid "Unpacking failed because %s is in the way."
+msgstr ""
+
+#: gpgprocess.py:216 gpgprocess.py:225 gpgprocess.py:251
+msgid "Archive Unpacking"
+msgstr ""
+
+#: gpg-config.ui:42
+msgid "_Encryption Options:"
+msgstr ""
+
+#: gpg-config.ui:57
+msgid "Always add _my key as recipient"
+msgstr ""
+
+#: gpg-config.ui:73
+msgid "Use unsigned k_eys"
+msgstr ""
+
+#: gpg-config.ui:89 gpg-encrypt.ui:393
+msgid "Remove or_iginals after encryption"
+msgstr ""
+
+#: gpg-config.ui:120
+msgid "Decryption options:"
+msgstr ""
+
+#: gpg-config.ui:134
+msgid "Use file names em_bedded into encryptions"
+msgstr ""
+
+#: gpg-config.ui:169
+msgid "_Default signing key:"
+msgstr ""
+
+#: gpg-config.ui:198 gpg-encrypt.ui:172 gpg-group-edit.ui:308
+#: gpg-janitor.ui:120 gpg-janitor.ui:226 gpg-janitor.ui:328 gpg-janitor.ui:433
+msgid "Key ID"
+msgstr ""
+
+#: gpg-config.ui:213 gpg-encrypt.ui:184 gpg-group-edit.ui:320
+#: gpg-janitor.ui:133 gpg-janitor.ui:238 gpg-janitor.ui:341 gpg-janitor.ui:446
+msgid "Created"
+msgstr ""
+
+#: gpg-config.ui:228 gpg-encrypt.ui:196 gpg-group-edit.ui:332
+#: gpg-janitor.ui:146 gpg-janitor.ui:250 gpg-janitor.ui:354 gpg-janitor.ui:459
+msgid "Expires"
+msgstr ""
+
+#: gpg-config.ui:243 gpg-encrypt.ui:208 gpg-group-edit.ui:344
+#: gpg-janitor.ui:159 gpg-janitor.ui:262 gpg-janitor.ui:367 gpg-janitor.ui:472
+msgid "User Name(s)"
+msgstr ""
+
+#: gpg-config.ui:274
+msgid "Signing"
+msgstr ""
+
+#: gpg-config.ui:291
+msgid "Packing Options:"
+msgstr ""
+
+#: gpg-config.ui:318
+msgid "Pack several files into _archives:"
+msgstr ""
+
+#: gpg-config.ui:334 gpg-config.ui:620
+msgid "yes"
+msgstr ""
+
+#: gpg-config.ui:350 gpg-config.ui:636
+msgid "no"
+msgstr ""
+
+#: gpg-config.ui:366 gpg-config.ui:652
+msgid "ask"
+msgstr ""
+
+#: gpg-config.ui:404
+msgid "Archive file _format:"
+msgstr ""
+
+#: gpg-config.ui:420
+msgid ".zip"
+msgstr ""
+
+#: gpg-config.ui:437
+msgid ".tar.gz"
+msgstr ""
+
+#: gpg-config.ui:454
+msgid ".tar.bz2"
+msgstr ""
+
+#: gpg-config.ui:500
+msgid "Archive file _name format:"
+msgstr ""
+
+#: gpg-config.ui:534 gpg-progress.ui:21
+msgid "label"
+msgstr ""
+
+#: gpg-config.ui:551
+msgid "Remove archives after _encryption"
+msgstr ""
+
+#: gpg-config.ui:582
+msgid "Unpacking Options:"
+msgstr ""
+
+#: gpg-config.ui:604
+msgid "Unpack _decrypted archives:"
+msgstr ""
+
+#: gpg-config.ui:682
+msgid "Remove _unpacked archives"
+msgstr ""
+
+#: gpg-config.ui:705
+msgid "(Un)packing"
+msgstr ""
+
+#: gpg-encrypt.ui:56 gpg-group-edit.ui:56
+msgid "Key _Groups:"
+msgstr ""
+
+#: gpg-encrypt.ui:95 gpg-group-edit.ui:86
+msgid "Group"
+msgstr ""
+
+#: gpg-encrypt.ui:108 gpg-group-edit.ui:99
+msgid "Key Count"
+msgstr ""
+
+#: gpg-encrypt.ui:132
+msgid "Public Keys:"
+msgstr ""
+
+#: gpg-encrypt.ui:235 gpg-group-edit.ui:373
+msgid "Search _Filter:"
+msgstr ""
+
+#: gpg-encrypt.ui:270 gpg-group-edit.ui:437
+msgid "Show:"
+msgstr ""
+
+#: gpg-encrypt.ui:284 gpg-group-edit.ui:451
+msgid "S_earch Results"
+msgstr ""
+
+#: gpg-encrypt.ui:302 gpg-group-edit.ui:468
+msgid "Se_lected Keys"
+msgstr ""
+
+#: gpg-encrypt.ui:321 gpg-group-edit.ui:487
+msgid "All _Keys"
+msgstr ""
+
+#: gpg-encrypt.ui:354
+msgid "Sign with _secret key:"
+msgstr ""
+
+#: gpg-encrypt.ui:413
+msgid "Remove Key-IDs from encrypted file"
+msgstr ""
+
+#: gpg-encrypt.ui:457
+msgid "Generate ASCII ouput"
+msgstr ""
+
+#: gpg-group-edit.ui:126
+msgid "_Rename"
+msgstr ""
+
+#: gpg-group-edit.ui:143
+msgid "Cop_y"
+msgstr ""
+
+#: gpg-group-edit.ui:173
+msgid "_New"
+msgstr ""
+
+#: gpg-group-edit.ui:189
+msgid "_Delete"
+msgstr ""
+
+#: gpg-group-edit.ui:219
+msgid "_Update"
+msgstr ""
+
+#: gpg-group-edit.ui:270
+msgid "_Public Keys:"
+msgstr ""
+
+#: gpg-group-edit.ui:405
+msgid "_Save to Group"
+msgstr ""
+
+#: gpg-janitor.ui:78
+msgid "Keys with invalid characters:"
+msgstr ""
+
+#: gpg-janitor.ui:184
+msgid "Keys with key length < 3072/4096 bits:"
+msgstr ""
+
+#: gpg-janitor.ui:286
+msgid "INSECURE Keys with length < 2048 bits:"
+msgstr ""
+
+#: gpg-janitor.ui:392
+msgid "Keys older than 2 years:"
+msgstr ""
+
+#: gpg-properties.ui:40
+msgid "_Decrypt"
+msgstr ""
+
+#: gpg-properties.ui:70 gpg-properties.ui:127
+msgid "filename"
+msgstr ""
+
+#: gpg-sign.ui:33
+msgid "Sign with secret _key:"
+msgstr ""
+msgid "Import Key"
+msgstr ""
+
+msgid "GPG-Properties"
+msgstr ""
+
+msgid "Verify"
+msgstr ""
+
+msgid "Decrypt"
+msgstr ""
+
+msgid "GnuPG Group Editor"
+msgstr ""
+
+msgid "GnuPG Configuration"
+msgstr ""
+
+msgid "GnuPG Keyring Janitor"
+msgstr ""

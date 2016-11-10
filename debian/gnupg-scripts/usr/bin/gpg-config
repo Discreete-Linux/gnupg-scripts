@@ -1,0 +1,224 @@
+#!/usr/bin/python
+#
+#  GnuPG-Scripts
+#
+#  Copyright (C) 2010 - 2016 Discreete Linux Team <info@discreete-linux.org>
+#
+import os
+import sys
+from gi.repository import Gtk, Gdk
+import gettext
+from gi.repository import GObject
+import gpgconf
+import gpgkeys
+import gpgmessages
+import gpgplatform
+
+# Get arguments
+args = sys.argv
+
+# Init translations
+os.environ.setdefault("LANG", "en")
+gettext.install("gnupg-scripts", unicode=1)
+
+
+
+class ConfApp(Gtk.Window):
+    """ Class for configuration of GnuPG and GnuPG-Scripts """
+    def __init__(self):
+        """ Read current settings and display dialog """
+        super(ConfApp, self).__init__()
+        self.builder = Gtk.Builder()
+        self.builder.add_from_file(os.path.join(gpgplatform.uidir(),
+                                   "gpg-config.ui"))
+        for i in self.builder.get_objects():
+            if "GtkBuildable" in str(GObject.type_interfaces(i)):
+                id = Gtk.Buildable.get_name(i)
+                vars(self)[id] = self.builder.get_object(id)
+        icon_name = self.window1.get_icon_name()
+        icon_theme = Gtk.IconTheme.get_default()
+        try:
+            self.icon = icon_theme.load_icon(icon_name, 24, 0)
+        except:
+            self.icon = None
+        self.gpgconf = gpgconf.GpgConf(self)
+        self.srcconf = gpgconf.SrcConf(self)
+        self.seckeys = gpgkeys.SecKeys(self)
+        self.selection = self.view.get_selection()
+        self.selection.set_mode(Gtk.SelectionMode.SINGLE)
+        n = 0
+        for key in self.seckeys.keylist:
+            self.store.append([ key[0],
+                                gpgkeys.strDate(key[1]),
+                                gpgkeys.strDate(key[2]),
+                                key[3] ])
+            if key[0] == self.gpgconf.defaultkey:
+                self.selection.select_path(n)
+            n += 1
+        self.chk1.set_active(self.srcconf.enctoself)
+        self.chk1a.set_active(self.srcconf.unsigned_keys)
+        self.chk1b.set_active(self.srcconf.removeorig)
+
+        if self.srcconf.pack == "yes":
+            self.yes1.set_active(True)
+            self.label2.set_mnemonic_widget(self.yes1)
+        elif self.srcconf.pack == "no":
+            self.no1.set_active(True)
+            self.label2.set_mnemonic_widget(self.no1)
+        else:
+            self.ask1.set_active(True)
+            self.label2.set_mnemonic_widget(self.ask1)
+
+        self.label3.set_text(self.srcconf.archive.ljust(8) + "\t")
+        if self.srcconf.archive == ".zip":
+            self.zipb.set_active(True)
+            self.label4.set_mnemonic_widget(self.zipb)
+        elif self.srcconf.archive == ".tar.gz":
+            self.tgzb.set_active(True)
+            self.label4.set_mnemonic_widget(self.tgzb)
+        elif self.srcconf.archive == ".tar.bz2":
+            self.tbzb.set_active(True)
+            self.label4.set_mnemonic_widget(self.tbzb)
+        self.entry.set_text(self.srcconf.packform)
+        tip = _("%y year two-digit\t%Y year four-digit\n")
+        tip += _("%m month\t\t%d day\n")
+        tip += _("%H hour\t\t\t%M minute\n")
+        tip += _("%a weekday 3 letters\t%A weekday full\n")
+        tip += _("%b month 3 letters\t%B month full\n")
+        tip += _("%V calendar week")
+        self.entry.set_tooltip_markup("<small>" + tip + "</small>")
+
+        self.chk2.set_active(self.srcconf.removepacked)
+
+        if self.srcconf.unpack == "yes":
+            self.yes2.set_active(True)
+            self.label7.set_mnemonic_widget(self.yes2)
+        elif self.srcconf.unpack == "no":
+            self.no2.set_active(True)
+            self.label7.set_mnemonic_widget(self.no2)
+        else:
+            self.ask2.set_active(True)
+            self.label7.set_mnemonic_widget(self.ask2)
+
+        self.chk3.set_active(self.srcconf.removeunpacked)
+        self.chk4.set_active(self.gpgconf.use_embedded_filename)
+
+        self.store.set_sort_column_id(3, Gtk.SortType.ASCENDING)
+        self.builder.connect_signals(self)
+        self.window1.show_all()
+
+
+    def gtk_main_quit(self, widget):
+        """ Quits the app """
+        Gtk.main_quit()
+
+
+    def onKeyPressed(self, widget, event):
+        """ Handles certain special key events """
+        keyname = Gdk.keyval_name(event.keyval)
+        # Make "Enter" or "Return" act like "OK"
+        if (keyname == "KP_Enter") or (keyname == "Return"):
+            if self.ok.get_sensitive():
+                self.onOk(self)
+            return True
+        # Make "Escape" act like "Cancel"
+        elif keyname == "Escape":
+            self.window1.destroy()
+            return True
+        return False
+
+
+    def onOk(self, widget):
+        """ Modify config based on user's settings """
+        item, itr = self.selection.get_selected()
+        if itr:
+            self.srcconf.enctoself = self.chk1.get_active()
+            self.srcconf.unsigned_keys = self.chk1a.get_active()
+            self.srcconf.removeorig = self.chk1b.get_active()
+            if self.yes1.get_active():
+                self.srcconf.pack = "yes"
+            elif self.no1.get_active():
+                self.srcconf.pack = "no"
+            else:
+                self.srcconf.pack = "ask"
+            if self.yes2.get_active():
+                self.srcconf.unpack = "yes"
+            elif self.no2.get_active():
+                self.srcconf.unpack = "no"
+            else:
+                self.srcconf.unpack = "ask"
+            self.srcconf.packform = self.entry.get_text()
+            self.srcconf.removepacked = self.chk2.get_active()
+            self.srcconf.removeunpacked = self.chk3.get_active()
+            self.srcconf.write_config()
+            self.gpgconf.defaultkey = item.get_value(itr, 0)
+            self.gpgconf.use_embedded_filename = self.chk4.get_active()
+            self.cleanUpAllGroups()
+            if self.gpgconf.write_config():
+                msg = _("GnuPG configuration file %s written successfully.") % \
+                      self.gpgconf.gpgconf.decode('UTF-8', 'replace')
+                gpgmessages.displayMessage(msg, _("Success"), Gtk.MessageType.INFO,
+                                           self.icon, self.window1)
+            self.window1.destroy()
+        else:
+            msg = _("Select a key before clicking OK!")
+            gpgmessages.displayMessage(msg, _("Select a key"),
+                                       Gtk.MessageType.WARNING,
+                                       self.icon, self.window1)
+        Gtk.main_quit()
+
+
+    def onArchiveFormat(self, widget):
+        """ Handle switches between archive formats """
+        if self.zipb.get_active():
+            self.srcconf.archive = ".zip"
+            self.label4.set_mnemonic_widget(self.zipb)
+        elif self.tgzb.get_active():
+            self.srcconf.archive = ".tar.gz"
+            self.label4.set_mnemonic_widget(self.tgzb)
+        elif self.tbzb.get_active():
+            self.srcconf.archive = ".tar.bz2"
+            self.label4.set_mnemonic_widget(self.tbzb)
+        self.label3.set_text(self.srcconf.archive.ljust(8) + "\t")
+
+
+    def cleanUpAllGroups(self):
+        """ Removes unsigned keys from all key groups
+            if self.srcconf.unsigned_keys is false.
+            Moreover invalid keys are removed. """
+        self.pubkeys = gpgkeys.PubKeys(self)
+        self.keyids = map(lambda x: x[0], self.pubkeys.keylist)
+        for group in self.gpgconf.groups:
+            self.cleanUpGroup(group)
+
+
+    def cleanUpGroup(self, group):
+        """ Removes unsigned keys from the key group
+            if self.srcconf.unsigned_keys is false.
+            Moreover invalid keys are removed. """
+        removed = filter(lambda x: x not in self.keyids, group[1])
+        group[1] = filter(lambda x: x in self.keyids, group[1])
+        if removed:
+            msg = _("The group '%s' has been updated.\n") % group[0].decode('UTF-8', 'replace')
+            if len(removed) > 1:
+                msg += _("%d unusable keys have been removed:\n") % len(removed)
+            else:
+                msg += _("1 unusable key has been removed:\n")
+            for keyid in removed:
+                key = self.pubkeys.check_key(keyid)
+                if key[0] == "unknown":
+                    msg += "\t" + _("unknown key") + ": " + keyid + "\n"
+                else:
+                    msg += "\t" + key[1] + "\n"
+            gpgmessages.displayMessage(msg, _("Group Update"), Gtk.MessageType.INFO,
+                                       self.icon, self.window1)
+
+
+
+if __name__ == "__main__":
+    if "--default" in args:
+        srcconf = gpgconf.SrcConf()
+        srcconf.write_config()
+    else:
+        conf = ConfApp()
+        Gtk.main()

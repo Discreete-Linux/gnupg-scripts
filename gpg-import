@@ -1,0 +1,90 @@
+#!/usr/bin/python
+
+from gi.repository import Gtk
+import gpgprocess
+import gpgkeys
+import gpgplatform
+import gpgmessages
+import time
+import sys
+import os
+
+icon_theme = Gtk.IconTheme.get_default()
+try:
+    icon = icon_theme.load_icon("gnupg-scripts-encrypt", 24, 0)
+except:
+    icon = None
+    pass
+shorttitle = _("Import")
+
+keyfiles = sys.argv[1:]
+
+def importKeys(keylist):
+    global shorttitle, icon
+    output = ""
+    builder = Gtk.Builder()
+    builder.add_from_file(os.path.join(gpgplatform.uidir(),
+                                            "gpg-import.ui"))
+    builder.get_object("progressbar1").set_text(_("Importing keys, Please Wait..."))
+    builder.get_object("window1").show()
+    
+    imported = []
+    unchanged = []
+    damaged = []
+    notfound = []
+    
+    msg = ""
+    msgtype = Gtk.MessageType.INFO
+    
+    for key in keylist:
+        if not os.path.exists(key):
+            notfound.append(key)
+            break
+        builder.get_object("progressbar1").set_text(key)
+        try:
+            gpgt = gpgprocess.GpgThread([ "--import", key ])
+            gpgt.start()
+            while gpgt.is_alive():
+                builder.get_object("progressbar1").pulse()
+                while Gtk.events_pending():
+                    Gtk.main_iteration()
+                time.sleep(.25)
+            gpgt.join()
+            result = gpgt.response()
+        except IOError:
+            gpgmessages.startFailed(None, icon, shorttitle)
+            builder.get_object("window1").destroy()
+            return False
+
+        gpgmsg = gpgmessages.GpgMessages(icon, shorttitle, "import")
+        for line in result["stderr"]:
+            if not gpgmsg.parse(key, line.strip()):
+                break
+        if gpgmsg.failed:
+            damaged.append(key)
+        elif gpgmsg.unchanged:
+            unchanged.append(key)
+        else:
+            imported.append(key)
+            
+    builder.get_object("window1").destroy()
+    while Gtk.events_pending():
+                Gtk.main_iteration()
+                
+    if len(damaged) > 0:
+        msg += _("The following keys are damaged and were NOT imported:\n%s\n\n") % '\n'.join(damaged).decode('UTF-8','replace')
+        msgtype = Gtk.MessageType.WARNING
+    if len(imported) > 0:
+        msg += _("The following keys were imported successfully:\n%s\n\n") % '\n'.join(imported).decode('UTF-8','replace')
+    if len(unchanged) > 0:
+        msg += _("The following keys were unchanged:\n%s\n\n") % '\n'.join(unchanged).decode('UTF-8','replace')
+    if len(notfound) > 0:
+        msg += _("The following key files could not be found:\n%s\n\n") % '\n'.join(notfound).decode('UTF-8','replace')
+              
+    gpgmessages.displayMessage(msg.rstrip(), shorttitle, msgtype, icon)
+    
+if keyfiles:
+    importKeys(keyfiles)
+else:
+    msg = _("Missing at least one file argument to import!")
+    gpgmessages.displayMessage(msg, shorttitle, icon=icon)

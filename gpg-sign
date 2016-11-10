@@ -1,0 +1,133 @@
+#!/usr/bin/python
+#
+#  GnuPG-Scripts
+#
+#  Copyright (C) 2016 Discreete Linux Team <info@discreete-linux.org>
+#
+import os
+import sys
+from gi.repository import Gtk, Gdk
+from gi.repository import GObject
+import gettext
+import gpgconf
+import gpgkeys
+import gpgmessages
+import gpgprocess
+import gpgplatform
+
+# Init translations
+os.environ.setdefault("LANG", "en")
+gettext.install("gnupg-scripts", unicode=1)
+# Init icons
+icon_theme = Gtk.IconTheme.get_default()
+try:
+    icon = icon_theme.load_icon("gnupg-scripts-sign", 24, 0)
+except:
+    icon = None
+    pass
+title = _("Signature")
+# Get arguments
+sigfiles = []
+for line in sys.argv[1:]:
+    sigfiles.append(line.decode('utf-8', 'replace'))
+
+workdir = os.getcwd().decode('utf-8', 'replace')
+
+class SignApp(object):
+    """ Sign a file with selected key """
+    def __init__(self):
+        """ Get and display list of secret keys """
+        global title, icon
+        super(SignApp, self).__init__()
+        self.builder = Gtk.Builder()
+        self.builder.add_from_file(os.path.join(gpgplatform.uidir(),
+                                                u"gpg-sign.ui"))
+        for i in self.builder.get_objects():
+            if "GtkBuildable" in str(GObject.type_interfaces(i)):
+                id = Gtk.Buildable.get_name(i)
+                vars(self)[id] = self.builder.get_object(id)
+        w = (Gdk.Screen.width() - 100)
+        if w > 750:
+            w = 750
+        h = Gdk.Screen.height() - 300
+        if h > 120:
+            h = 120
+        self.window1.set_size_request(w, h)
+        self.gpgconf = gpgconf.GpgConf(self)
+        self.seckeys = gpgkeys.SecKeys(self, False)
+        n = 0
+        self.seckeys.keylist.sort(key = lambda x: x[3])
+        for key in self.seckeys.keylist:
+            i = key[3].find("\n")
+            if i < 0:
+                name = key[3]
+            else:
+                name = key[3][0:i]
+            self.store1.append([name])
+            if key[0] == self.gpgconf.defaultkey:
+                self.combo.set_active(n)
+            n += 1
+        if not self.gpgconf.defaultkey:
+            self.ok.set_sensitive(False)
+        self.builder.connect_signals(self)
+        self.window1.show_all()
+
+    def gtk_main_quit(self, widget):
+        """ Quits the App """
+        Gtk.main_quit()
+
+    def onChanged(self, widget):
+        """ Handle changes in key popup menu """
+        self.ok.set_sensitive(True)
+
+    def onOk(self, widget):
+        """ Handle OK response """
+        global sigfiles
+        self.window1.hide()
+        args = [ "--use-agent" ]
+        n = self.combo.get_active()
+        if n >= 0 and n < len(self.seckeys.keylist):
+            args.append("-bu")
+            args.append(self.seckeys.keylist[n][0])
+            for curfile in sigfiles:
+                curargs = list(args)
+                curargs.append("-o")
+                curargs.append(curfile + ".sig")
+                curargs.append(curfile)
+                if not self.signFile(curargs):
+                    break
+        self.window1.destroy()
+
+    def signFile(self, args):
+        """ Sign a file with a detached signature """
+        global title, icon
+        try:
+            result = gpgprocess.gpg(args)
+        except IOError:
+            gpgmessages.startFailed(None, icon, title)
+            return False
+        if (result["return-code"] != 0):
+            gpgmsg = gpgmessages.GpgMessages(icon, title, "encrypt")
+            fname = args.pop()
+            for line in result["stderr"]:
+                if not gpgmsg.parse(fname, line):
+                    break
+            else:
+                if gpgmsg.badpass:
+                    output = gpgmsg.badpass_msg
+                elif gpgmsg.failopen:
+                    output = gpgmsg.failopen_msg % fname
+                else:
+                    output = gpgmsg.messages
+                msg = fname + ":\n" + _("Signing failed:\n") + output
+                gpgmessages.displayMessage(msg, title, Gtk.MessageType.ERROR, icon)
+                return False
+        return True
+
+if __name__ == "__main__":
+    if sigfiles:
+        SignApp()
+        Gtk.main()
+    else:
+        msg = _("Missing at least one file argument to sign!")
+        gpgmessages.displayMessage(msg, title, icon=icon)

@@ -1,0 +1,16 @@
+#
+#  GnuPG-Scripts
+#
+#  Copyright (C) 2016 Discreete Linux Team <info@discreete-linux.org>
+#
+
+[Desktop Entry]
+Name=GPG-Properties
+Encoding=UTF-8
+MimeType=inode/directory;application/pgp-encrypted;
+Exec=/usr/bin/gpg-properties
+Icon=gnupg-scripts-encrypt
+Type=Application
+Terminal=false
+NoDisplay=true
+X-Ubuntu-Gettext-Domain=gnupg-scripts
